@@ -76,7 +76,7 @@ rm -rf workshop_content
 mkdir -p workshop_content
 
 cp ModInfo.xml workshop_content/
-cp logo-512.png workshop_content/
+[ -f logo-512.png ] && cp logo-512.png workshop_content/
 cp -r Infos workshop_content/
 
 echo "Content staged:"

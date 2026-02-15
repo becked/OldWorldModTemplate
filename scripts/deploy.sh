@@ -42,10 +42,11 @@ echo ""
 echo "=== Deploying to mods folder ==="
 echo "Target: $MOD_FOLDER"
 
+rm -rf "$MOD_FOLDER"
 mkdir -p "$MOD_FOLDER"
 
 cp ModInfo.xml "$MOD_FOLDER/"
-cp logo-512.png "$MOD_FOLDER/"
+[ -f logo-512.png ] && cp logo-512.png "$MOD_FOLDER/"
 cp -r Infos "$MOD_FOLDER/"
 
 echo ""

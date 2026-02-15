@@ -109,12 +109,12 @@ if [ -z "$MODIO_MOD_ID" ]; then
         "https://api.mod.io/v1/games/$MODIO_GAME_ID/mods"
         -H "Authorization: Bearer $MODIO_ACCESS_TOKEN"
         -H "Accept: application/json"
-        -F "name=$MOD_NAME"
-        -F "summary=$MOD_SUMMARY"
+        --form-string "name=$MOD_NAME"
+        --form-string "summary=$MOD_SUMMARY"
         -F "logo=@logo-512.png"
     )
     if [ -n "$DESCRIPTION" ]; then
-        CURL_CREATE_ARGS+=(-F "description=$DESCRIPTION")
+        CURL_CREATE_ARGS+=(--form-string "description=$DESCRIPTION")
     fi
 
     RESPONSE=$(curl -sS -w "\n%{http_code}" "${CURL_CREATE_ARGS[@]}")
@@ -198,7 +198,7 @@ rm -rf modio_content modio_upload.zip
 mkdir -p modio_content
 
 cp ModInfo.xml modio_content/
-cp logo-512.png modio_content/
+[ -f logo-512.png ] && cp logo-512.png modio_content/
 cp -r Infos modio_content/
 
 echo "Content prepared:"
