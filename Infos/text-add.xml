@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Root>
+  <!-- Text strings for your mod. This file MUST have a UTF-8 BOM. -->
+  <!-- The validate.sh script and pre-commit hook check for it automatically. -->
+  <!--
+  <Entry>
+    <zType>TEXT_BONUS_MY_MOD_EXAMPLE</zType>
+    <English>Example Bonus</English>
+  </Entry>
+  -->
+</Root>
