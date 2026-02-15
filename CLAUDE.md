@@ -36,27 +36,37 @@ mklink /D Reference "C:\Program Files (x86)\Steam\steamapps\common\Old World\Ref
 
 ## Deployment
 
+All scripts are available as both bash (`.sh`) and PowerShell (`.ps1`). Use whichever matches your platform. All scripts run validation before deploying/uploading. If a `.csproj` file is present, scripts automatically build the C# mod and include DLLs in the deployment. All scripts read version from `ModInfo.xml` and changelog from `CHANGELOG.md` (or CLI argument). Use `--dry-run` / `-DryRun` to preview uploads without sending.
+
 **Local testing** (requires `.env` with `OLDWORLD_MODS_PATH`; C# mods also need `OLDWORLD_PATH`):
 ```bash
-./scripts/deploy.sh
+./scripts/deploy.sh            # bash
+.\scripts\deploy.ps1           # PowerShell
 ```
 
 **Steam Workshop** (requires `steamcmd`, `.env` with `STEAM_USERNAME`, `workshop.vdf` template):
 ```bash
-./scripts/workshop-upload.sh [--dry-run] [changelog]
+./scripts/workshop-upload.sh [--dry-run] [changelog]          # bash
+.\scripts\workshop-upload.ps1 [-DryRun] [-Changelog "msg"]    # PowerShell
 ```
 
 **mod.io** (requires `.env` with `MODIO_ACCESS_TOKEN`, `MODIO_GAME_ID`, `MODIO_MOD_ID`):
 ```bash
-./scripts/modio-upload.sh [--dry-run] [changelog]
+./scripts/modio-upload.sh [--dry-run] [changelog]          # bash
+.\scripts\modio-upload.ps1 [-DryRun] [-Changelog "msg"]    # PowerShell
 ```
 
 **Validation only:**
 ```bash
-./scripts/validate.sh
+./scripts/validate.sh           # bash
+.\scripts\validate.ps1          # PowerShell
 ```
 
-All scripts run validation before deploying/uploading. If a `.csproj` file is present, scripts automatically build the C# mod and include DLLs in the deployment. All scripts read version from `ModInfo.xml` and changelog from `CHANGELOG.md` (or CLI argument). Use `--dry-run` to preview uploads without sending.
+**Install pre-commit hook:**
+```bash
+./scripts/install-hooks.sh      # bash (creates symlink)
+.\scripts\install-hooks.ps1     # PowerShell (creates cross-platform shim)
+```
 
 ## Two Types of Mods
 
@@ -76,7 +86,7 @@ For changes that can't be made through XML (e.g., camera behavior, UI modificati
 
 Text files (`text*-add.xml`) **must** have a UTF-8 BOM (`ef bb bf`) at the start of the file. Without the BOM, the game silently fails to load text and events won't fire. Event and bonus XMLs do NOT need a BOM.
 
-The pre-commit hook and `scripts/validate.sh` catch missing BOMs automatically. To set up the hook after a fresh clone: `./scripts/install-hooks.sh`
+The pre-commit hook and validation scripts (`validate.sh` / `validate.ps1`) catch missing BOMs automatically. To set up the hook after a fresh clone: `./scripts/install-hooks.sh` (bash) or `.\scripts\install-hooks.ps1` (PowerShell).
 
 ```bash
 # Add BOM to a text file manually
@@ -102,11 +112,16 @@ printf '\xef\xbb\xbf' > temp.xml && cat original.xml >> temp.xml && mv temp.xml 
 │   └── event-lottery-weight-system.md # How event selection works
 ├── CHANGELOG.md              # Release notes (parsed by upload scripts)
 ├── scripts/
-│   ├── deploy.sh             # Deploy to local mods folder (auto-builds C# if .csproj exists)
-│   ├── workshop-upload.sh    # Upload to Steam Workshop via SteamCMD
-│   ├── modio-upload.sh       # Upload to mod.io via API
-│   ├── validate.sh           # BOM + XML validation (also used as pre-commit hook)
-│   └── install-hooks.sh      # Install git pre-commit hook
+│   ├── deploy.sh / .ps1      # Deploy to local mods folder (auto-builds C# if .csproj exists)
+│   ├── workshop-upload.sh / .ps1  # Upload to Steam Workshop via SteamCMD
+│   ├── modio-upload.sh / .ps1     # Upload to mod.io via API
+│   ├── validate.sh / .ps1    # BOM + XML validation (also used as pre-commit hook)
+│   ├── install-hooks.sh / .ps1    # Install git pre-commit hook
+│   └── helpers.ps1           # Shared PowerShell functions
+├── tests/                    # Pester tests for PowerShell scripts
+│   ├── *.Tests.ps1           # Test files
+│   └── fixtures/             # Test fixture data
+├── .github/workflows/ci.yml  # CI: PSScriptAnalyzer + Pester (Windows), validate.sh (Ubuntu)
 └── Reference/ -> (symlink)   # Game source code and vanilla XML data
 ```
 

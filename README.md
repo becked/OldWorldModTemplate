@@ -23,14 +23,17 @@ Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails
 1. Clone this repo
 2. Copy `.env.example` to `.env` and fill in your paths
 3. Set up the Reference symlink (see [CLAUDE.md](CLAUDE.md#setting-up-the-reference-symlink))
-4. Install the pre-commit hook: `./scripts/install-hooks.sh`
+4. Install the pre-commit hook:
+   - **bash:** `./scripts/install-hooks.sh`
+   - **PowerShell:** `.\scripts\install-hooks.ps1`
 
 ### XML-Only Mods
 
 Add or modify XML files in `Infos/`. No build step needed — just deploy:
 
 ```bash
-./scripts/deploy.sh
+./scripts/deploy.sh            # bash (macOS/Linux)
+.\scripts\deploy.ps1           # PowerShell (Windows)
 ```
 
 ### C# Mods
@@ -48,8 +51,16 @@ See `docs/modding-guide.md` for a comprehensive C# modding guide covering both G
 
 ### Deploy and Upload
 
+**bash (macOS/Linux):**
 ```bash
 ./scripts/deploy.sh                          # Local testing
 ./scripts/workshop-upload.sh [--dry-run]     # Steam Workshop
 ./scripts/modio-upload.sh [--dry-run]        # mod.io
+```
+
+**PowerShell (Windows):**
+```powershell
+.\scripts\deploy.ps1                         # Local testing
+.\scripts\workshop-upload.ps1 [-DryRun]      # Steam Workshop
+.\scripts\modio-upload.ps1 [-DryRun]         # mod.io
 ```

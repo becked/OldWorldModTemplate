@@ -6,3 +6,4 @@ modio_content/
 modio_upload.zip
 bin/
 obj/
+tests/fixtures/**/.env
