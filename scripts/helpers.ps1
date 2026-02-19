@@ -37,6 +37,7 @@ function Get-XmlTagValue {
 }
 
 function Set-XmlTagValue {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$FilePath,
         [string]$TagName,
@@ -46,8 +47,10 @@ function Set-XmlTagValue {
     [xml]$doc = Get-Content $FilePath
     $node = $doc.SelectSingleNode("//$TagName")
     if (-not $node) { return $false }
-    $node.InnerText = $Value
-    $doc.Save((Resolve-Path $FilePath).Path)
+    if ($PSCmdlet.ShouldProcess($FilePath, "Set <$TagName> to '$Value'")) {
+        $node.InnerText = $Value
+        $doc.Save((Resolve-Path $FilePath).Path)
+    }
     return $true
 }
 

@@ -136,7 +136,7 @@ try {
                     $GameBuild = ($raw -split '\s')[0]
                 }
             } catch {
-                # defaults command not available (e.g., Windows) - skip
+                Write-Verbose "defaults command not available (e.g., Windows) - skip"
             }
         }
 
