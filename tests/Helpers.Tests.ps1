@@ -68,6 +68,29 @@ Describe 'Get-XmlTagValue' {
     }
 }
 
+Describe 'Set-XmlTagValue' {
+    BeforeEach {
+        $tempXml = Join-Path ([System.IO.Path]::GetTempPath()) "test-$(Get-Random).xml"
+        Copy-Item "$FixturesDir/valid-project/ModInfo.xml" $tempXml
+    }
+    AfterEach {
+        if (Test-Path $tempXml) { Remove-Item $tempXml }
+    }
+
+    It 'updates modversion value' {
+        Set-XmlTagValue -FilePath $tempXml -TagName 'modversion' -Value '2.0.0' | Should -Be $true
+        Get-XmlTagValue -FilePath $tempXml -TagName 'modversion' | Should -Be '2.0.0'
+    }
+
+    It 'returns false for missing tag' {
+        Set-XmlTagValue -FilePath $tempXml -TagName 'nonexistent' -Value 'x' | Should -Be $false
+    }
+
+    It 'returns false for missing file' {
+        Set-XmlTagValue -FilePath 'nonexistent.xml' -TagName 'modversion' -Value 'x' | Should -Be $false
+    }
+}
+
 Describe 'Get-ChangelogForVersion' {
     It 'extracts correct section for version 1.0.0' {
         $result = Get-ChangelogForVersion -Version '1.0.0' -ChangelogPath "$FixturesDir/CHANGELOG.md"

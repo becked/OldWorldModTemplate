@@ -51,3 +51,9 @@ jobs:
 
       - name: Run validate.sh
         run: ./scripts/validate.sh
+
+      - name: Test bump-version.sh
+        run: |
+          ./scripts/bump-version.sh patch
+          grep '<modversion>0.1.1</modversion>' ModInfo.xml
+          git checkout -- ModInfo.xml CHANGELOG.md

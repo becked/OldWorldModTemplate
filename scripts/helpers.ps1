@@ -36,6 +36,21 @@ function Get-XmlTagValue {
     return $null
 }
 
+function Set-XmlTagValue {
+    param(
+        [string]$FilePath,
+        [string]$TagName,
+        [string]$Value
+    )
+    if (-not (Test-Path $FilePath)) { return $false }
+    [xml]$doc = Get-Content $FilePath
+    $node = $doc.SelectSingleNode("//$TagName")
+    if (-not $node) { return $false }
+    $node.InnerText = $Value
+    $doc.Save((Resolve-Path $FilePath).Path)
+    return $true
+}
+
 function Invoke-CSharpBuild {
     param(
         [string]$CsprojPath,

@@ -62,6 +62,12 @@ All scripts are available as both bash (`.sh`) and PowerShell (`.ps1`). Use whic
 .\scripts\validate.ps1          # PowerShell
 ```
 
+**Bump version:**
+```bash
+./scripts/bump-version.sh patch|minor|major|X.Y.Z    # bash
+.\scripts\bump-version.ps1 patch|minor|major|X.Y.Z   # PowerShell
+```
+
 **Install pre-commit hook:**
 ```bash
 ./scripts/install-hooks.sh      # bash (creates symlink)
@@ -112,6 +118,7 @@ printf '\xef\xbb\xbf' > temp.xml && cat original.xml >> temp.xml && mv temp.xml 
 │   └── event-lottery-weight-system.md # How event selection works
 ├── CHANGELOG.md              # Release notes (parsed by upload scripts)
 ├── scripts/
+│   ├── bump-version.sh / .ps1 # Semver bump with changelog scaffolding
 │   ├── deploy.sh / .ps1      # Deploy to local mods folder (auto-builds C# if .csproj exists)
 │   ├── workshop-upload.sh / .ps1  # Upload to Steam Workshop via SteamCMD
 │   ├── modio-upload.sh / .ps1     # Upload to mod.io via API
@@ -127,4 +134,4 @@ printf '\xef\xbb\xbf' > temp.xml && cat original.xml >> temp.xml && mv temp.xml 
 
 ## Version Management
 
-Single source of truth: `ModInfo.xml` `<modversion>` tag. When bumping the version, also add a new `## [x.y.z] - YYYY-MM-DD` section to `CHANGELOG.md` — the upload scripts automatically extract notes for the current version.
+Single source of truth: `ModInfo.xml` `<modversion>` tag. Use `./scripts/bump-version.sh` (or `.ps1`) to increment the version — it updates ModInfo.xml and scaffolds a new CHANGELOG.md entry with today's date. If `OLDWORLD_PATH` is set in `.env` and ModInfo.xml has a `<modbuild>` tag, the script also syncs modbuild from the game installation. The upload scripts automatically extract changelog notes for the current version.
