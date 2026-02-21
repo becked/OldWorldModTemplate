@@ -77,14 +77,14 @@ All scripts are available as both bash (`.sh`) and PowerShell (`.ps1`). Use whic
 ## Two Types of Mods
 
 ### XML-Only Mods
-Most Old World mods only need XML. Add or override game data in `Infos/` — bonuses, events, units, etc. No `.csproj` or `Source/` needed; delete them if you don't need C#.
+Most Old World mods only need XML. Add or override game data in `Infos/` — bonuses, events, units, etc. No `.csproj` or `Source/` needed; delete them if you don't need C#. See `docs/modding-guide-xml.md` for detailed XML modding documentation.
 
 ### C# DLL Mods (Harmony)
 For changes that can't be made through XML (e.g., camera behavior, UI modifications, custom game logic). Uses Harmony to patch methods at runtime.
 
 - `Source/ModEntryPoint.cs` — mod entry point with Harmony scaffolding
 - `MyMod.csproj` — build configuration (rename to match your mod)
-- See `docs/modding-guide.md` for detailed C# modding documentation
+- See `docs/modding-guide-csharp.md` for detailed C# modding documentation
 
 **Key constraint**: Mods cannot reference `Assembly-CSharp.dll` at compile time. Use `AccessTools.TypeByName()` and `Traverse` for runtime type resolution when patching Assembly-CSharp classes.
 
@@ -112,8 +112,8 @@ printf '\xef\xbb\xbf' > temp.xml && cat original.xml >> temp.xml && mv temp.xml 
 │   └── ModEntryPoint.cs      # Mod entry point with Harmony scaffolding
 ├── MyMod.csproj              # C# build config (optional — delete if XML-only)
 ├── docs/
-│   ├── modding-guide.md             # C# modding guide (GameFactory + Harmony)
-│   ├── modding-lessons-learned.md   # Troubleshooting and modding patterns
+│   ├── modding-guide-xml.md         # XML modding guide (events, game options, text)
+│   ├── modding-guide-csharp.md      # C# modding guide (GameFactory + Harmony)
 │   ├── memory-levels.md             # Vanilla memory level reference table
 │   └── event-lottery-weight-system.md # How event selection works
 ├── CHANGELOG.md              # Release notes (parsed by upload scripts)

@@ -2,6 +2,8 @@
 
 This guide explains how to create C# mods for Old World, the historical strategy game by Mohawk Games.
 
+**For XML-only modding** (events, game options, text — no C# needed), see [modding-guide-xml.md](modding-guide-xml.md).
+
 **Authoritative external resource**: [dales.world](https://dales.world) has excellent tutorials on Old World modding.
 
 ## Prerequisites

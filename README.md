@@ -35,7 +35,7 @@ Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails
 
 ### XML-Only Mods
 
-Most Old World mods only need XML. Add or override game data in `Infos/` — bonuses, events, units, text strings, etc. No build step needed, just deploy and test:
+Most Old World mods only need XML. Add or override game data in `Infos/` — bonuses, events, units, text strings, etc. No build step needed, just deploy and test. See `docs/modding-guide-xml.md` for the full XML modding guide.
 
 ```bash
 ./scripts/deploy.sh            # bash (macOS/Linux)
@@ -53,7 +53,7 @@ For changes that can't be made through XML alone (e.g., camera behavior, UI modi
 
 The deploy and upload scripts automatically detect the `.csproj` and build before deploying. If you don't need C#, delete `MyMod.csproj` and `Source/` — the scripts will skip the build step.
 
-See `docs/modding-guide.md` for a comprehensive C# modding guide covering both GameFactory and Harmony approaches.
+See `docs/modding-guide-csharp.md` for a comprehensive C# modding guide covering both GameFactory and Harmony approaches.
 
 ### Deploy and Upload
 
