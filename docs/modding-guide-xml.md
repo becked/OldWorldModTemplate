@@ -493,6 +493,7 @@ All event variants must share a cooldown via `aeEventStoryRepeatTurns` (bidirect
 
 - **[dales.world](https://dales.world)** — Authoritative Old World modding tutorials
 - **Old World Discord** — Official modding support channel
+- **[Pinacotheca](https://becked.github.io/pinacotheca/)** — Browsable gallery of all in-game art assets (portraits, icons, illustrations), useful for picking `ImageName` values for events and UI
 - **Reference Data** — `Reference/XML/Infos/` in the game folder contains all vanilla XML definitions
 - **Vanilla Events** — `Reference/XML/Infos/eventStory.xml` for examples of event structure, triggers, and options
 - **[Event Lottery Weight System](event-lottery-weight-system.md)** — How the game selects which events fire

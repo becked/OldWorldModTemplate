@@ -17,6 +17,11 @@ Supports both XML-only mods (bonuses, events, units, etc.) and C# DLL mods using
 
 Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=TODO) or [mod.io](https://mod.io/g/oldworld/m/TODO), or copy the mod folder to your Old World mods directory manually.
 
+## Resources
+
+- **[Pinacotheca](https://becked.github.io/pinacotheca/)** — Browsable gallery of all in-game art assets (portraits, icons, illustrations)
+- **[dales.world](https://dales.world)** — Authoritative Old World modding tutorials
+
 ## Compatibility
 
 - Single-player and multiplayer
