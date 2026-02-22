@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 BeforeAll {
-    $ValidateScript = (Resolve-Path "$PSScriptRoot/../scripts/validate.ps1").Path
+    $ValidateScript = (Resolve-Path "$PSScriptRoot/../template/scripts/validate.ps1").Path
     $FixturesDir = (Resolve-Path "$PSScriptRoot/fixtures").Path
 
     # Detect PowerShell executable (pwsh for Core, powershell for Windows PS)

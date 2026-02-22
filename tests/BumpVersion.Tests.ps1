@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 BeforeAll {
-    $BumpScript = (Resolve-Path "$PSScriptRoot/../scripts/bump-version.ps1").Path
+    $BumpScript = (Resolve-Path "$PSScriptRoot/../template/scripts/bump-version.ps1").Path
     $FixturesDir = (Resolve-Path "$PSScriptRoot/fixtures").Path
 
     $PwshExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }

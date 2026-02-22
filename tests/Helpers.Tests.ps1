@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 BeforeAll {
-    . "$PSScriptRoot/../scripts/helpers.ps1"
+    . "$PSScriptRoot/../template/scripts/helpers.ps1"
     $FixturesDir = "$PSScriptRoot/fixtures"
 }
 

@@ -20,7 +20,9 @@ jobs:
       - name: Lint PowerShell scripts
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path scripts/*.ps1 -Settings PSGallery
+          $results = @()
+          $results += Invoke-ScriptAnalyzer -Path template/scripts/*.ps1 -Settings PSGallery
+          $results += Invoke-ScriptAnalyzer -Path create-mod.ps1 -Settings PSGallery
           if ($results) {
             $results | Format-Table -AutoSize
             throw "PSScriptAnalyzer found $($results.Count) issue(s)"
@@ -49,11 +51,13 @@ jobs:
       - name: Install xmllint
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils
 
-      - name: Run validate.sh
+      - name: Run validate.sh on template
         run: ./scripts/validate.sh
+        working-directory: template
 
       - name: Test bump-version.sh
         run: |
           ./scripts/bump-version.sh patch
           grep '<modversion>0.1.1</modversion>' ModInfo.xml
           git checkout -- ModInfo.xml CHANGELOG.md
+        working-directory: template

@@ -1,9 +1,2 @@
 .env
 Reference
-workshop_content/
-workshop_upload.vdf
-modio_content/
-modio_upload.zip
-bin/
-obj/
-tests/fixtures/**/.env

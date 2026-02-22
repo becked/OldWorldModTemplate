@@ -4,7 +4,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a mod template for Old World (turn-based strategy game). It provides scaffolding, deployment scripts, and validation tooling for creating new mods. Supports both XML-only mods and C# DLL mods (using Harmony for runtime patching).
+This repo produces a mod template for Old World (turn-based strategy game). Users run a one-liner (`create-mod.sh` or `create-mod.ps1`) which downloads and scaffolds a new mod project. The repo itself is the *source* for that template — it is not a mod.
+
+## Repo Structure
+
+```
+├── create-mod.sh              # Curl-able installer (bash)
+├── create-mod.ps1             # Curl-able installer (PowerShell)
+├── README.md                  # How to use the template
+├── CLAUDE.md                  # This file
+├── OLDWORLD-CHANGELOG.md      # Game-update diffs for modders
+├── .github/workflows/ci.yml   # CI for the template itself
+├── tests/                     # Pester tests for template scripts
+│   ├── *.Tests.ps1
+│   └── fixtures/
+├── template/                  # Files that get shipped to users
+│   ├── ModInfo.xml            # Mod metadata and version
+│   ├── CHANGELOG.md
+│   ├── .env.example
+│   ├── gitignore              # Renamed to .gitignore by create-mod scripts
+│   ├── mod-description.html
+│   ├── workshop.vdf
+│   ├── MyMod.csproj           # C# build config (removed for XML-only mods)
+│   ├── Infos/                 # Mod XML files (game loads from here)
+│   │   ├── *-add.xml          # Add new entries (bonuses, events, etc.)
+│   │   └── text*-add.xml      # UI text strings (needs UTF-8 BOM)
+│   ├── Source/                # C# source files (removed for XML-only mods)
+│   │   └── ModEntryPoint.cs   # Mod entry point with Harmony scaffolding
+│   ├── scripts/               # Deploy, validate, and upload scripts
+│   │   ├── bump-version.sh / .ps1
+│   │   ├── deploy.sh / .ps1
+│   │   ├── workshop-upload.sh / .ps1
+│   │   ├── modio-upload.sh / .ps1
+│   │   ├── validate.sh / .ps1
+│   │   ├── install-hooks.sh / .ps1
+│   │   └── helpers.ps1
+│   └── docs/
+│       ├── modding-guide-xml.md
+│       ├── modding-guide-csharp.md
+│       ├── memory-levels.md
+│       └── event-lottery-weight-system.md
+└── Reference/ -> (symlink)    # Game source code and vanilla XML data
+```
 
 ## Game Reference Data
 
@@ -34,104 +75,34 @@ On Windows (run as administrator):
 mklink /D Reference "C:\Program Files (x86)\Steam\steamapps\common\Old World\Reference"
 ```
 
-## Deployment
+## Template Scripts (in template/scripts/)
 
-All scripts are available as both bash (`.sh`) and PowerShell (`.ps1`). Use whichever matches your platform. All scripts run validation before deploying/uploading. If a `.csproj` file is present, scripts automatically build the C# mod and include DLLs in the deployment. All scripts read version from `ModInfo.xml` and changelog from `CHANGELOG.md` (or CLI argument). Use `--dry-run` / `-DryRun` to preview uploads without sending.
+All scripts are available as both bash (`.sh`) and PowerShell (`.ps1`). All scripts run validation before deploying/uploading. If a `.csproj` file is present, scripts automatically build the C# mod and include DLLs. Use `--dry-run` / `-DryRun` to preview uploads.
 
-**Local testing** (requires `.env` with `OLDWORLD_MODS_PATH`; C# mods also need `OLDWORLD_PATH`):
-```bash
-./scripts/deploy.sh            # bash
-.\scripts\deploy.ps1           # PowerShell
-```
+## create-mod Scripts
 
-**Steam Workshop** (requires `steamcmd`, `.env` with `STEAM_USERNAME`, `workshop.vdf` template):
-```bash
-./scripts/workshop-upload.sh [--dry-run] [changelog]          # bash
-.\scripts\workshop-upload.ps1 [-DryRun] [-Changelog "msg"]    # PowerShell
-```
+`create-mod.sh` and `create-mod.ps1` at the repo root are the user-facing installers. They:
+1. Download the `template/` directory from GitHub as a tarball/zip
+2. Ask for mod name, author, and XML-only vs C# choice
+3. Apply configuration (rename files, sed/replace placeholders)
+4. Drop a ready-to-go mod folder
 
-**mod.io** (requires `.env` with `MODIO_ACCESS_TOKEN`, `MODIO_GAME_ID`, `MODIO_MOD_ID`):
-```bash
-./scripts/modio-upload.sh [--dry-run] [changelog]          # bash
-.\scripts\modio-upload.ps1 [-DryRun] [-Changelog "msg"]    # PowerShell
-```
-
-**Validation only:**
-```bash
-./scripts/validate.sh           # bash
-.\scripts\validate.ps1          # PowerShell
-```
-
-**Bump version:**
-```bash
-./scripts/bump-version.sh patch|minor|major|X.Y.Z    # bash
-.\scripts\bump-version.ps1 patch|minor|major|X.Y.Z   # PowerShell
-```
-
-**Install pre-commit hook:**
-```bash
-./scripts/install-hooks.sh      # bash (creates symlink)
-.\scripts\install-hooks.ps1     # PowerShell (creates cross-platform shim)
-```
+Placeholders that get replaced: `My Mod Name`, `Your Name`, `MyMod` (namespace/assembly), `com.yourname.mymod` (Harmony ID), `[MyMod]` (log tags).
 
 ## Two Types of Mods
 
 ### XML-Only Mods
-Most Old World mods only need XML. Add or override game data in `Infos/` — bonuses, events, units, etc. No `.csproj` or `Source/` needed; delete them if you don't need C#. See `docs/modding-guide-xml.md` for detailed XML modding documentation.
+Most Old World mods only need XML. Add or override game data in `Infos/` — bonuses, events, units, etc. No `.csproj` or `Source/` needed. See `template/docs/modding-guide-xml.md`.
 
 ### C# DLL Mods (Harmony)
-For changes that can't be made through XML (e.g., camera behavior, UI modifications, custom game logic). Uses Harmony to patch methods at runtime.
+For changes that can't be made through XML (camera behavior, UI modifications, custom game logic). Uses Harmony to patch methods at runtime. See `template/docs/modding-guide-csharp.md`.
 
-- `Source/ModEntryPoint.cs` — mod entry point with Harmony scaffolding
-- `MyMod.csproj` — build configuration (rename to match your mod)
-- See `docs/modding-guide-csharp.md` for detailed C# modding documentation
-
-**Key constraint**: Mods cannot reference `Assembly-CSharp.dll` at compile time. Use `AccessTools.TypeByName()` and `Traverse` for runtime type resolution when patching Assembly-CSharp classes.
+**Key constraint**: Mods cannot reference `Assembly-CSharp.dll` at compile time. Use `AccessTools.TypeByName()` and `Traverse` for runtime type resolution.
 
 ## Critical: Text Files Need UTF-8 BOM
 
-Text files (`text*-add.xml`) **must** have a UTF-8 BOM (`ef bb bf`) at the start of the file. Without the BOM, the game silently fails to load text and events won't fire. Event and bonus XMLs do NOT need a BOM.
-
-The pre-commit hook and validation scripts (`validate.sh` / `validate.ps1`) catch missing BOMs automatically. To set up the hook after a fresh clone: `./scripts/install-hooks.sh` (bash) or `.\scripts\install-hooks.ps1` (PowerShell).
-
-```bash
-# Add BOM to a text file manually
-printf '\xef\xbb\xbf' > temp.xml && cat original.xml >> temp.xml && mv temp.xml original.xml
-```
-
-## File Structure
-
-```
-├── ModInfo.xml               # Mod metadata and version (single source of truth)
-├── CLAUDE.md
-├── logo-512.png              # 512x512 mod icon (used by Steam/mod.io)
-├── Infos/                    # Mod XML files (game loads from here)
-│   ├── *-add.xml             # Add new entries (bonuses, events, etc.)
-│   └── text*-add.xml         # UI text strings (needs UTF-8 BOM)
-├── Source/                   # C# source files (optional — delete if XML-only)
-│   └── ModEntryPoint.cs      # Mod entry point with Harmony scaffolding
-├── MyMod.csproj              # C# build config (optional — delete if XML-only)
-├── docs/
-│   ├── modding-guide-xml.md         # XML modding guide (events, game options, text)
-│   ├── modding-guide-csharp.md      # C# modding guide (GameFactory + Harmony)
-│   ├── memory-levels.md             # Vanilla memory level reference table
-│   └── event-lottery-weight-system.md # How event selection works
-├── CHANGELOG.md              # Release notes (parsed by upload scripts)
-├── scripts/
-│   ├── bump-version.sh / .ps1 # Semver bump with changelog scaffolding
-│   ├── deploy.sh / .ps1      # Deploy to local mods folder (auto-builds C# if .csproj exists)
-│   ├── workshop-upload.sh / .ps1  # Upload to Steam Workshop via SteamCMD
-│   ├── modio-upload.sh / .ps1     # Upload to mod.io via API
-│   ├── validate.sh / .ps1    # BOM + XML validation (also used as pre-commit hook)
-│   ├── install-hooks.sh / .ps1    # Install git pre-commit hook
-│   └── helpers.ps1           # Shared PowerShell functions
-├── tests/                    # Pester tests for PowerShell scripts
-│   ├── *.Tests.ps1           # Test files
-│   └── fixtures/             # Test fixture data
-├── .github/workflows/ci.yml  # CI: PSScriptAnalyzer + Pester (Windows), validate.sh (Ubuntu)
-└── Reference/ -> (symlink)   # Game source code and vanilla XML data
-```
+Text files (`text*-add.xml`) **must** have a UTF-8 BOM (`ef bb bf`). Without the BOM, the game silently fails to load text. The validation scripts catch missing BOMs automatically.
 
 ## Version Management
 
-Single source of truth: `ModInfo.xml` `<modversion>` tag. Use `./scripts/bump-version.sh` (or `.ps1`) to increment the version — it updates ModInfo.xml and scaffolds a new CHANGELOG.md entry with today's date. If `OLDWORLD_PATH` is set in `.env` and ModInfo.xml has a `<modbuild>` tag, the script also syncs modbuild from the game installation. The upload scripts automatically extract changelog notes for the current version.
+Single source of truth: `template/ModInfo.xml` `<modversion>` tag. The `bump-version` scripts update it and scaffold CHANGELOG.md entries.

@@ -1,79 +1,97 @@
 # Old World Mod Template
 
-A starter template for building [Old World](https://store.steampowered.com/app/597180/Old_World/) mods. Provides project scaffolding, automated validation, and one-command deployment to Steam Workshop and mod.io — so you can focus on the mod itself instead of the tooling around it.
+Create a new [Old World](https://store.steampowered.com/app/597180/Old_World/) mod with one command. Gets you a ready-to-go project with XML scaffolding, validation scripts, and one-command deployment to Steam Workshop and mod.io.
 
-Supports both XML-only mods (bonuses, events, units, etc.) and C# DLL mods using [Harmony](https://github.com/pardeike/Harmony) for runtime patching.
+## Quick Start
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/becked/OldWorldModTemplate/main/create-mod.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/becked/OldWorldModTemplate/main/create-mod.ps1 | iex
+```
+
+The script will ask for your mod name, author, and whether you want XML-only or C# (Harmony) support, then create a configured project folder.
+
+### Prefer to inspect before running?
+
+Download the script first, review it, then run it:
+
+**macOS / Linux:**
+```bash
+curl -fsSL -o create-mod.sh https://raw.githubusercontent.com/becked/OldWorldModTemplate/main/create-mod.sh
+less create-mod.sh        # review the script
+bash create-mod.sh        # run it
+```
+
+**Windows (PowerShell):**
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/becked/OldWorldModTemplate/main/create-mod.ps1 -OutFile create-mod.ps1
+Get-Content create-mod.ps1   # review the script
+.\create-mod.ps1             # run it
+```
+
+### Manual setup (no script)
+
+1. Download the [latest zip](https://github.com/becked/OldWorldModTemplate/archive/refs/heads/main.zip) and extract the `template/` folder
+2. Rename it to your mod name
+3. Rename `gitignore` to `.gitignore`
+4. Edit `ModInfo.xml` — set `<displayName>` and `<author>`
+5. If XML-only, delete `MyMod.csproj` and `Source/`
+6. If C#, rename `MyMod.csproj` and update `AssemblyName`/`RootNamespace` inside it, plus the namespace in `Source/ModEntryPoint.cs`
+
+## What You Get
+
+```
+YourModName/
+├── ModInfo.xml          Mod metadata (already filled in)
+├── Infos/               XML data files — add bonuses, events, units, text here
+├── scripts/             Deploy, validate, and upload scripts (bash + PowerShell)
+├── docs/                Modding guides and reference
+├── .env.example         Template for local paths and upload credentials
+├── workshop.vdf         Steam Workshop upload config
+└── (if C#) Source/ + .csproj with Harmony scaffolding
+```
+
+## After Creating Your Mod
+
+1. `cd YourModName`
+2. Copy `.env.example` to `.env` and set `OLDWORLD_MODS_PATH` to your Old World mods folder
+3. Add your mod content to `Infos/`
+4. Deploy locally to test:
+   ```bash
+   ./scripts/deploy.sh            # macOS/Linux
+   .\scripts\deploy.ps1           # Windows
+   ```
+5. When ready, upload to Steam Workshop or mod.io:
+   ```bash
+   ./scripts/workshop-upload.sh   # Steam Workshop
+   ./scripts/modio-upload.sh      # mod.io
+   ```
+
+See `docs/modding-guide-xml.md` in your generated project for an XML modding guide, or `docs/modding-guide-csharp.md` for C# / Harmony patching.
 
 ## Features
 
-- **XML and C# support** — start with XML-only or add a `.csproj` for Harmony-based C# patching; build scripts detect which mode you're using automatically
-- **One-command deploy and upload** — deploy locally for testing, or publish to Steam Workshop (`steamcmd`) and mod.io from the command line, with `--dry-run` support
-- **Cross-platform scripts** — every script ships as both bash (`.sh`) and PowerShell (`.ps1`)
-- **Automatic validation** — pre-commit hook and standalone validator catch missing UTF-8 BOMs on text files and malformed XML before they reach the game
-- **Game reference symlink** — point `Reference/` at your Old World install to browse vanilla XML data and decompiled C# source without leaving the repo
-- **Old World changelog** — [`OLDWORLD-CHANGELOG.md`](OLDWORLD-CHANGELOG.md) tracks game-update diffs across `Source/` and `Reference/`, documenting new APIs, breaking changes, and balance shifts so modders can stay current between patches
-
-## Installation
-
-Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=TODO) or [mod.io](https://mod.io/g/oldworld/m/TODO), or copy the mod folder to your Old World mods directory manually.
+- **XML and C# support** — start with XML-only or add Harmony-based C# patching; build scripts detect which mode you're using
+- **One-command deploy and upload** — local testing, Steam Workshop (via `steamcmd`), and mod.io, with `--dry-run` support
+- **Cross-platform** — every script ships as both bash and PowerShell
+- **Automatic validation** — pre-commit hook and standalone validator catch missing UTF-8 BOMs and malformed XML before they reach the game
+- **Version management** — `bump-version.sh` increments semver in ModInfo.xml and scaffolds changelog entries
 
 ## Resources
 
-- **[Pinacotheca](https://becked.github.io/pinacotheca/)** — Browsable gallery of all in-game art assets (portraits, icons, illustrations)
-- **[dales.world](https://dales.world)** — Authoritative Old World modding tutorials
+- **[Pinacotheca](https://becked.github.io/pinacotheca/)** — browsable gallery of all in-game art assets (portraits, icons, illustrations)
+- **[dales.world](https://dales.world)** — Old World modding tutorials
+- **[OLDWORLD-CHANGELOG.md](OLDWORLD-CHANGELOG.md)** — tracks game-update diffs, new APIs, and breaking changes between patches
 
-## Compatibility
+## Contributing
 
-- Single-player and multiplayer
-- No DLC required
+This repo contains the template source and the `create-mod` scripts. To work on the template itself:
 
-## Development
-
-### Setup
-
-1. **Clone this repo** — use it as a starting point for your own mod
-2. **Copy `.env.example` to `.env`** and fill in your paths — the deploy and upload scripts read this to know where your game and mods folder are, and where to publish. At minimum you need `OLDWORLD_MODS_PATH` for local testing; the Steam/mod.io credentials are only needed if you plan to upload.
-3. **Set up the Reference symlink** (see [CLAUDE.md](CLAUDE.md#setting-up-the-reference-symlink)) — this points `Reference/` at your Old World install so you can browse vanilla XML data and decompiled source directly from the repo, which is useful for looking up field names, valid enum values, and existing game behavior
-4. **Install the pre-commit hook** — catches common mistakes (missing UTF-8 BOMs on text files, malformed XML) before they get committed, saving you from silent in-game failures:
-   - **bash:** `./scripts/install-hooks.sh`
-   - **PowerShell:** `.\scripts\install-hooks.ps1`
-
-### XML-Only Mods
-
-Most Old World mods only need XML. Add or override game data in `Infos/` — bonuses, events, units, text strings, etc. No build step needed, just deploy and test. See `docs/modding-guide-xml.md` for the full XML modding guide.
-
-```bash
-./scripts/deploy.sh            # bash (macOS/Linux)
-.\scripts\deploy.ps1           # PowerShell (Windows)
-```
-
-### C# Mods
-
-For changes that can't be made through XML alone (e.g., camera behavior, UI modifications, custom game logic). The template includes a `.csproj` and `Source/ModEntryPoint.cs` with Harmony scaffolding. To use:
-
-1. **Rename `MyMod.csproj`** to match your mod name
-2. **Update `AssemblyName` and `RootNamespace`** in the `.csproj`
-3. **Set `OLDWORLD_PATH`** in your `.env` — the build needs this to find the game's DLLs for compilation
-4. **Edit `Source/ModEntryPoint.cs`** with your mod logic
-
-The deploy and upload scripts automatically detect the `.csproj` and build before deploying. If you don't need C#, delete `MyMod.csproj` and `Source/` — the scripts will skip the build step.
-
-See `docs/modding-guide-csharp.md` for a comprehensive C# modding guide covering both GameFactory and Harmony approaches.
-
-### Deploy and Upload
-
-All scripts run validation before deploying. Use `--dry-run` / `-DryRun` to preview an upload without actually publishing.
-
-**bash (macOS/Linux):**
-```bash
-./scripts/deploy.sh                          # Copy mod to local mods folder for testing
-./scripts/workshop-upload.sh [--dry-run]     # Publish to Steam Workshop via steamcmd
-./scripts/modio-upload.sh [--dry-run]        # Publish to mod.io via API
-```
-
-**PowerShell (Windows):**
-```powershell
-.\scripts\deploy.ps1                         # Copy mod to local mods folder for testing
-.\scripts\workshop-upload.ps1 [-DryRun]      # Publish to Steam Workshop via steamcmd
-.\scripts\modio-upload.ps1 [-DryRun]         # Publish to mod.io via API
-```
+1. Clone this repo
+2. Template files live in `template/` — this is what gets downloaded by `create-mod.sh`/`.ps1`
+3. Tests are in `tests/` and run via GitHub Actions CI

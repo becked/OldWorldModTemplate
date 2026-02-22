@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 BeforeAll {
-    $DeployScript = (Resolve-Path "$PSScriptRoot/../scripts/deploy.ps1").Path
+    $DeployScript = (Resolve-Path "$PSScriptRoot/../template/scripts/deploy.ps1").Path
     $FixturesDir = (Resolve-Path "$PSScriptRoot/fixtures").Path
 
     # Detect PowerShell executable (pwsh for Core, powershell for Windows PS)
