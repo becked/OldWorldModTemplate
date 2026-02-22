@@ -61,3 +61,78 @@ jobs:
           grep '<modversion>0.1.1</modversion>' ModInfo.xml
           git checkout -- ModInfo.xml CHANGELOG.md
         working-directory: template
+
+      - name: Test create-mod.sh (XML-only)
+        run: |
+          cd "$(mktemp -d)"
+          MOD_NAME="Test Mod" AUTHOR="CI Bot" MOD_TYPE=xml \
+            TEMPLATE_DIR="$GITHUB_WORKSPACE/template" \
+            bash "$GITHUB_WORKSPACE/create-mod.sh"
+
+          # Verify folder created with PascalCase name
+          test -d TestMod
+
+          # Verify placeholder replacement in ModInfo.xml
+          grep '<displayName>Test Mod</displayName>' TestMod/ModInfo.xml
+          grep '<author>CI Bot</author>' TestMod/ModInfo.xml
+
+          # Verify workshop.vdf title
+          grep '"Test Mod"' TestMod/workshop.vdf
+
+          # Verify gitignore renamed
+          test -f TestMod/.gitignore
+          test ! -f TestMod/gitignore
+
+          # Verify C# files removed for XML-only
+          test ! -f TestMod/MyMod.csproj
+          test ! -d TestMod/Source
+
+          # Verify bin/obj stripped from .gitignore
+          ! grep '^bin/' TestMod/.gitignore
+          ! grep '^obj/' TestMod/.gitignore
+
+          # Verify Infos/ preserved
+          test -d TestMod/Infos
+
+          echo "create-mod.sh XML-only: PASSED"
+
+      - name: Test create-mod.sh (C#)
+        run: |
+          cd "$(mktemp -d)"
+          MOD_NAME="Cool Strategy Mod" AUTHOR="CI Bot" MOD_TYPE=csharp \
+            TEMPLATE_DIR="$GITHUB_WORKSPACE/template" \
+            bash "$GITHUB_WORKSPACE/create-mod.sh"
+
+          # Verify PascalCase folder
+          test -d CoolStrategyMod
+
+          # Verify .csproj renamed and configured
+          test -f CoolStrategyMod/CoolStrategyMod.csproj
+          test ! -f CoolStrategyMod/MyMod.csproj
+          grep '<AssemblyName>CoolStrategyMod</AssemblyName>' CoolStrategyMod/CoolStrategyMod.csproj
+          grep '<RootNamespace>CoolStrategyMod</RootNamespace>' CoolStrategyMod/CoolStrategyMod.csproj
+
+          # Verify ModEntryPoint.cs configured
+          grep 'namespace CoolStrategyMod' CoolStrategyMod/Source/ModEntryPoint.cs
+          grep 'com\.cibot\.coolstrategymod' CoolStrategyMod/Source/ModEntryPoint.cs
+          grep '\[CoolStrategyMod\]' CoolStrategyMod/Source/ModEntryPoint.cs
+          ! grep 'namespace MyMod' CoolStrategyMod/Source/ModEntryPoint.cs
+          ! grep '\[MyMod\]' CoolStrategyMod/Source/ModEntryPoint.cs
+
+          # Verify .gitignore retains bin/obj
+          grep '^bin/' CoolStrategyMod/.gitignore
+          grep '^obj/' CoolStrategyMod/.gitignore
+
+          echo "create-mod.sh C#: PASSED"
+
+      - name: Test create-mod.sh rejects existing directory
+        run: |
+          cd "$(mktemp -d)"
+          mkdir TestMod
+          if MOD_NAME="Test Mod" MOD_TYPE=xml \
+            TEMPLATE_DIR="$GITHUB_WORKSPACE/template" \
+            bash "$GITHUB_WORKSPACE/create-mod.sh" 2>/dev/null; then
+            echo "FAIL: should have exited with error"
+            exit 1
+          fi
+          echo "create-mod.sh duplicate dir check: PASSED"

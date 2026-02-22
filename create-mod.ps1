@@ -1,10 +1,22 @@
 # create-mod.ps1 - Download and scaffold a new Old World mod
 #
-# Usage:
+# Usage (interactive):
 #   irm https://raw.githubusercontent.com/becked/OldWorldModTemplate/main/create-mod.ps1 | iex
 #
 # Or download and run locally:
 #   .\create-mod.ps1
+#
+# Non-interactive (for CI / scripting):
+#   .\create-mod.ps1 -ModName "My Mod" -Author "Jeff" -ModType xml
+#   .\create-mod.ps1 -ModName "My Mod" -ModType csharp -TemplateDir ./template
+
+param(
+    [string]$ModName,
+    [string]$Author,
+    [ValidateSet('xml', 'csharp', '')]
+    [string]$ModType,
+    [string]$TemplateDir
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -17,8 +29,8 @@ $ZipUrl = "https://github.com/$Repo/archive/refs/heads/$Branch.zip"
 function Read-Prompt {
     param([string]$Prompt, [string]$Default)
     if ($Default) {
-        $input = Read-Host "$Prompt [$Default]"
-        if ([string]::IsNullOrWhiteSpace($input)) { return $Default } else { return $input }
+        $response = Read-Host "$Prompt [$Default]"
+        if ([string]::IsNullOrWhiteSpace($response)) { return $Default } else { return $response }
     } else {
         return Read-Host $Prompt
     }
@@ -39,25 +51,36 @@ function ConvertTo-HarmonyId {
     return "com.$a.$m"
 }
 
-# ── Interactive prompts ──────────────────────────────────────────────────────
+# ── Interactive prompts (skipped when params are provided) ───────────────────
 
 Write-Host ''
 Write-Host 'Old World Mod Creator'
 Write-Host '====================='
 Write-Host ''
 
-$ModName = Read-Prompt -Prompt 'Mod name' -Default 'My Mod'
-$Author = Read-Prompt -Prompt 'Author name' -Default ''
+if ([string]::IsNullOrWhiteSpace($ModName)) {
+    $ModName = Read-Prompt -Prompt 'Mod name' -Default 'My Mod'
+}
+if (-not $PSBoundParameters.ContainsKey('Author')) {
+    $Author = Read-Prompt -Prompt 'Author name' -Default ''
+}
 
-Write-Host ''
-Write-Host 'Mod type:'
-Write-Host '  1) XML only (recommended for most mods)'
-Write-Host '  2) XML + C# (Harmony patching)'
-$ModTypeChoice = Read-Prompt -Prompt 'Choose' -Default '1'
+if ([string]::IsNullOrWhiteSpace($ModType)) {
+    Write-Host ''
+    Write-Host 'Mod type:'
+    Write-Host '  1) XML only (recommended for most mods)'
+    Write-Host '  2) XML + C# (Harmony patching)'
+    $ModTypeChoice = Read-Prompt -Prompt 'Choose' -Default '1'
+} else {
+    switch ($ModType) {
+        'xml'    { $ModTypeChoice = '1' }
+        'csharp' { $ModTypeChoice = '2' }
+    }
+}
 
 # ── Download and extract template ────────────────────────────────────────────
 
-$PascalName = ConvertTo-PascalCase $ModName
+$PascalName = ConvertTo-PascalCase -Name $ModName
 $FolderName = $PascalName
 
 if (Test-Path $FolderName) {
@@ -65,25 +88,35 @@ if (Test-Path $FolderName) {
     Write-Error "Directory '$FolderName' already exists."
 }
 
-Write-Host ''
-Write-Host 'Downloading template...'
-
-$TmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("oldworld-mod-$([guid]::NewGuid().ToString('N').Substring(0,8))")
-New-Item -ItemType Directory -Path $TmpDir | Out-Null
-$ZipPath = Join-Path $TmpDir 'template.zip'
-
-try {
-    Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipPath -UseBasicParsing
-    Expand-Archive -Path $ZipPath -DestinationPath $TmpDir
-
-    $Extracted = Join-Path $TmpDir "OldWorldModTemplate-$Branch" 'template'
-    if (-not (Test-Path $Extracted)) {
-        Write-Error 'Could not find template/ in downloaded archive.'
+if ($TemplateDir) {
+    # Local mode: copy from a local template directory (for CI / development)
+    if (-not (Test-Path $TemplateDir)) {
+        Write-Error "TemplateDir '$TemplateDir' does not exist."
     }
+    Write-Host ''
+    Write-Host "Copying template from $TemplateDir..."
+    Copy-Item -Path $TemplateDir -Destination $FolderName -Recurse
+} else {
+    Write-Host ''
+    Write-Host 'Downloading template...'
 
-    Move-Item -Path $Extracted -Destination $FolderName
-} finally {
-    Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
+    $TmpDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "oldworld-mod-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+    New-Item -ItemType Directory -Path $TmpDir | Out-Null
+    $ZipPath = Join-Path -Path $TmpDir -ChildPath 'template.zip'
+
+    try {
+        Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipPath -UseBasicParsing
+        Expand-Archive -Path $ZipPath -DestinationPath $TmpDir
+
+        $Extracted = Join-Path -Path $TmpDir -ChildPath "OldWorldModTemplate-$Branch/template"
+        if (-not (Test-Path $Extracted)) {
+            Write-Error 'Could not find template/ in downloaded archive.'
+        }
+
+        Move-Item -Path $Extracted -Destination $FolderName
+    } finally {
+        Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
+    }
 }
 
 # ── Configure the mod ────────────────────────────────────────────────────────

@@ -1,11 +1,15 @@
 #!/bin/bash
 # create-mod.sh - Download and scaffold a new Old World mod
 #
-# Usage:
+# Usage (interactive):
 #   curl -fsSL https://raw.githubusercontent.com/becked/OldWorldModTemplate/main/create-mod.sh | bash
 #
 # Or download and run locally:
 #   ./create-mod.sh
+#
+# Non-interactive (for CI / scripting):
+#   MOD_NAME="My Mod" AUTHOR="Jeff" MOD_TYPE=xml ./create-mod.sh
+#   MOD_NAME="My Mod" MOD_TYPE=csharp TEMPLATE_DIR=./template ./create-mod.sh
 
 set -e
 
@@ -17,12 +21,17 @@ TARBALL_URL="https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz"
 
 prompt() {
     local var_name="$1" prompt_text="$2" default="$3"
+    # If the variable is already set (via env), skip the prompt
+    eval "local current_val=\"\$$var_name\""
+    if [ -n "$current_val" ]; then
+        return
+    fi
     if [ -n "$default" ]; then
         printf "%s [%s]: " "$prompt_text" "$default" >&2
     else
         printf "%s: " "$prompt_text" >&2
     fi
-    read -r value
+    read -r value </dev/tty
     eval "$var_name=\"${value:-$default}\""
 }
 
@@ -32,7 +41,6 @@ to_pascal_case() {
 }
 
 to_harmony_id() {
-    # "My Cool Mod" → "mymod.coolmod" (lowercase, no spaces)
     local author="$1" mod="$2"
     local a=$(echo "$author" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
     local m=$(echo "$mod" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
@@ -50,13 +58,24 @@ echo ""
 prompt MOD_NAME "Mod name" "My Mod"
 prompt AUTHOR "Author name" ""
 
-echo ""
-echo "Mod type:"
-echo "  1) XML only (recommended for most mods)"
-echo "  2) XML + C# (Harmony patching)"
-printf "Choose [1]: " >&2
-read -r MOD_TYPE_CHOICE
-MOD_TYPE_CHOICE="${MOD_TYPE_CHOICE:-1}"
+# Convert MOD_TYPE env var to the numeric choice used internally
+if [ -n "$MOD_TYPE" ]; then
+    case "$MOD_TYPE" in
+        xml)    MOD_TYPE_CHOICE="1" ;;
+        csharp) MOD_TYPE_CHOICE="2" ;;
+        *)      echo "Error: MOD_TYPE must be 'xml' or 'csharp'"; exit 1 ;;
+    esac
+fi
+
+if [ -z "$MOD_TYPE_CHOICE" ]; then
+    echo ""
+    echo "Mod type:"
+    echo "  1) XML only (recommended for most mods)"
+    echo "  2) XML + C# (Harmony patching)"
+    printf "Choose [1]: " >&2
+    read -r MOD_TYPE_CHOICE </dev/tty
+    MOD_TYPE_CHOICE="${MOD_TYPE_CHOICE:-1}"
+fi
 
 # ── Download and extract template ────────────────────────────────────────────
 
@@ -69,23 +88,34 @@ if [ -d "$FOLDER_NAME" ]; then
     exit 1
 fi
 
-echo ""
-echo "Downloading template..."
+if [ -n "$TEMPLATE_DIR" ]; then
+    # Local mode: copy from a local template directory (for CI / development)
+    if [ ! -d "$TEMPLATE_DIR" ]; then
+        echo "Error: TEMPLATE_DIR '$TEMPLATE_DIR' does not exist."
+        exit 1
+    fi
+    echo ""
+    echo "Copying template from $TEMPLATE_DIR..."
+    cp -R "$TEMPLATE_DIR" "$FOLDER_NAME"
+else
+    echo ""
+    echo "Downloading template..."
 
-TMPDIR_PATH=$(mktemp -d)
-trap 'rm -rf "$TMPDIR_PATH"' EXIT
+    TMPDIR_PATH=$(mktemp -d)
+    trap 'rm -rf "$TMPDIR_PATH"' EXIT
 
-curl -fsSL "$TARBALL_URL" | tar xz -C "$TMPDIR_PATH"
+    curl -fsSL "$TARBALL_URL" | tar xz -C "$TMPDIR_PATH"
 
-# The tarball extracts to OldWorldModTemplate-main/template/
-EXTRACTED="$TMPDIR_PATH/OldWorldModTemplate-$BRANCH/template"
+    # The tarball extracts to OldWorldModTemplate-main/template/
+    EXTRACTED="$TMPDIR_PATH/OldWorldModTemplate-$BRANCH/template"
 
-if [ ! -d "$EXTRACTED" ]; then
-    echo "Error: could not find template/ in downloaded archive."
-    exit 1
+    if [ ! -d "$EXTRACTED" ]; then
+        echo "Error: could not find template/ in downloaded archive."
+        exit 1
+    fi
+
+    mv "$EXTRACTED" "$FOLDER_NAME"
 fi
-
-mv "$EXTRACTED" "$FOLDER_NAME"
 
 # ── Configure the mod ────────────────────────────────────────────────────────
 
