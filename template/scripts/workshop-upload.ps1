@@ -114,6 +114,8 @@ try {
             -replace '<ul>', '[list]' `
             -replace '</ul>', '[/list]' `
             -replace '<li>(.*?)</li>', '[*] $1' `
+            -replace '<b>', '[b]' `
+            -replace '</b>', '[/b]' `
             -replace '"', "'"
         Write-Host "Description converted from mod-description.html"
     } else {
