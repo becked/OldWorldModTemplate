@@ -1,5 +1,19 @@
 # Old World Reference Changelog
 
+## 2026-02-26 Hotfix (post-Update #143)
+
+4 files changed (+10 / -8 lines) — UI-only fixes.
+
+### Bug Fixes
+
+- **End Turn button** — fixed interactability check; now also verifies the turn hasn't already been ended (`isTurnEnded()`) and uses `isCurrentPlayerTurn()` instead of direct player comparison
+- **Promotion icon occlusion** — unit widget promotion-available icon now includes a cutout layer (`WorldButtonOccludeUnitWidget`) to render correctly against other UI elements
+
+### UI Polish
+
+- **Tooltip positioning** — Game of the Week button tooltip moved to right side; multiplayer game list tooltip changed to follow mouse
+- **Ping wheel** — removed sort modifier and fixed template variable naming (`PopupPings-@-` → `PopupPings@-`)
+
 ## 2026-02-18 Update (Update #143)
 
 194 files changed (+9,550 / -5,713 lines) across Source and XML.
