@@ -25,7 +25,7 @@ Describe 'deploy.ps1' {
         & $PwshExe -NoProfile -File $DeployScript -ProjectDir $fixtureDir 2>$null
         $LASTEXITCODE | Should -Be 0
 
-        $deployedDir = Join-Path $TempModsDir 'Test Mod'
+        $deployedDir = Join-Path $TempModsDir 'valid-project'
         Test-Path (Join-Path $deployedDir 'ModInfo.xml') | Should -Be $true
         Test-Path (Join-Path $deployedDir 'Infos') | Should -Be $true
     }

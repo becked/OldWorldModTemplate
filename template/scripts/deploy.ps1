@@ -31,13 +31,11 @@ try {
         Write-Error "OLDWORLD_MODS_PATH not set in .env"
     }
 
-    # Read mod name from ModInfo.xml
-    $ModName = Get-XmlTagValue 'ModInfo.xml' 'displayName'
-    if (-not $ModName) {
-        Write-Error "Could not extract mod name from ModInfo.xml"
-    }
-
-    $ModFolder = Join-Path $ModsPath $ModName
+    # Use project directory name as the mod folder name.
+    # The create-mod scripts set this to a PascalCase identifier (e.g. "MapSearch"),
+    # which avoids issues with spaces in displayName (see GitHub issue #4).
+    $ModFolderName = Split-Path -Leaf $ProjectDir
+    $ModFolder = Join-Path $ModsPath $ModFolderName
 
     # Validate mod content (run as subprocess so validate's exit doesn't terminate us)
     $psExe = (Get-Process -Id $PID).Path

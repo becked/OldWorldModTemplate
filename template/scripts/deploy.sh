@@ -26,14 +26,11 @@ if [ -z "$OLDWORLD_MODS_PATH" ]; then
     exit 1
 fi
 
-# Read mod name from ModInfo.xml
-MOD_NAME=$(sed -n 's/.*<displayName>\([^<]*\)<\/displayName>.*/\1/p' ModInfo.xml)
-if [ -z "$MOD_NAME" ]; then
-    echo "Error: Could not extract mod name from ModInfo.xml"
-    exit 1
-fi
-
-MOD_FOLDER="$OLDWORLD_MODS_PATH/$MOD_NAME"
+# Use project directory name as the mod folder name.
+# The create-mod scripts set this to a PascalCase identifier (e.g. "MapSearch"),
+# which avoids issues with spaces in displayName (see GitHub issue #4).
+MOD_FOLDER_NAME=$(basename "$PROJECT_DIR")
+MOD_FOLDER="$OLDWORLD_MODS_PATH/$MOD_FOLDER_NAME"
 
 # Validate mod content
 "$SCRIPT_DIR/validate.sh" || exit 1
