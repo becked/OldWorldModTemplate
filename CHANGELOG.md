@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2026-03-09
+
+- Fix deploy scripts using displayName (with spaces) as mod folder name; use project directory name instead (#4)
+
 ## [0.3.0] - 2026-02-22
 
 - Add curl-able `create-mod.sh` and `create-mod.ps1` installer scripts for one-liner mod scaffolding
