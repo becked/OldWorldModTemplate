@@ -1,5 +1,224 @@
 # Old World Reference Changelog
 
+## 2026-03-18 Update (Update #144)
+
+321 files changed (+109,146 / -67,097 lines) across Source, XML, and decompiled. Bulk of additions are pre-loaded Empires of the Indus DLC content (gated behind `EMPIRES_OF_THE_INDUS` content check, DLC not yet released).
+
+Official patch notes: https://mohawkgames.com/2026/03/18/old-world-update-144/
+
+### Gameplay
+
+- **Flanking now prevents counterattack damage** — `canCounterattack()` gains `pToUnit` parameter; checks `pToTile.flankingAttack(pToUnit, pFromTile)` and returns false if attacker is flanking. AI sets counter damage to 0 for flanking attacks. New `Tile.hasMeleeCounter()` method. Combat tooltip shows "Flanking" text when active
+- **Void tech prerequisite system** — new `EffectCityType.maeVoidTechPrereqImprovementClass` allows city effects to bypass tech prerequisites for improvement classes. `City.mdVoidTechPrereqUnlocks` dictionary tracks unlocked classes. `Player.isImprovementUnlocked()` gains optional `City` parameter. Help text shows "requires Tech OR [effect source]" using OR-lists. AI values void tech prereqs proportional to skipped tech's science cost
+  - Clerics family seat now uses this: `aeVoidTechPrereqImprovementClass` for Monastery (replaces removed `BONUS_FAMILYCLASS_CLERICS_SEAT` free Divine Rule law)
+- **Enlightenment Cathedrals** give growth per population, not per citizen (yield moved from `EFFECTCITY_ADVANTAGE_PENALTY_LOW` to `EFFECTCITY_ADVANTAGE_PENALTY_HIGH`)
+- **Redemption theology buffed** — harbor and hamlet improvement class modifiers increased from 20% to 50%. Redemption Cathedrals now allow hurrying specialists and projects with training (`aeHurryTraining`)
+- **Zealot leaders** can now only rush units with training — `aeHurryTraining` limited to `BUILD_UNIT` only (was `bHurryTraining=1` for all)
+- **Monasteries** can be built in Clerics family cities without Monasticism tech (via void tech prereq)
+- **Clerics no longer start with Divine Rule** — `SeatFoundBonus` (`BONUS_FAMILYCLASS_CLERICS_SEAT`) removed from family class
+- **Baths** can no longer be built on sand (except for Clerics) — `bFreshWaterValid` removed from improvements, replaced with `TerrainValid: TERRAIN_TARGET_HABITABLE_FRESH` via new `InfoTerrainTarget.mbFreshWaterAccess` field
+- **Events that spread a religion** now contribute to religion spread goals — `City.spreadReligion()` tracks `pSpreadPlayer` for goal/stat attribution
+- **Law upkeep swaps**: Legal Code now costs 6 Money/city (was 0.2 Orders); Divine Rule now costs 0.5 Science/city (was 6 Money); Guilds now costs 0.5 Orders/city (was 10 Money)
+  - Underlying: `EFFECTPLAYER_UPKEEP_MEDIUM_ORDERS` reduced -5→-3; `EFFECTPLAYER_UPKEEP_HIGH_ORDERS` reduced -10→-5; new `EFFECTPLAYER_UPKEEP_MEDIUM_SCIENCE` at -5
+- **Besieger effect** now valid for Melee and Ranged (was Melee and Siege) — `EFFECTUNIT_DISARM` target changed from `UNITTRAIT_SIEGE` to `UNITTRAIT_RANGED`
+- **Growth scaling delayed** — increased Growth required for new population now occurs after 30 growths instead of 20
+- **Family opinion yield formula changed** — `getFamilyOpinion() + 1` → `getFamilyOpinion()` (removes +1 offset), now starts from 0 at Furious to 5 at Friendly
+- **Disciples generate 1 Culture per turn** on their respective Holy Sites (all 4 existing religions: Zoroastrianism, Judaism, Christianity, Manichaeism)
+- **Rebels in Hunters cities** no longer affect family opinion — `InfoTribe.mbNoAttackDiscontent` now checked
+- **Clergy traits minimum age** raised to 18 — all pagan clergy traits added `iMinAge: 18`; existing religion clergy raised from 14 to 18
+- **Pagan religions can now have theologies** — new `InfoReligion.mbForceTheologies` boolean; `Game.canEstablishTheology()` allows theologies for pagan religions if flag set
+- **Rebel and Anarchy units** no longer receive tribe-level fatigue bonus — new `InfoTribe.mbNoFatigueBonus` flag
+- **Initial tribe diplomacy** now starts at `TRUCE_DIPLOMACY` (was `DiplomacyType.NONE`)
+- **Road pathfinding** refactored — `Tile.canHaveRoad()` now uses revealed data (fog-of-war aware); new `Tile.canAddRoad(TeamType, bool, TeamType)` consolidates ownership/territory checks; pathfinder won't route through rival nation territory
+- **Adjacent improvement cost modifier** now only counts improvements belonging to the same team
+- **Push-through attack fix** — can no longer push through a tile containing a non-vulnerable city
+- **Character creation defaults** — `createPresetCharacter()` now reads family, tribe, nation from character XML when NONE passed
+- **Bonus character assignment** — characters made into councilors/governors/generals/explorers via bonus now have `setPlayer()` called before assignment
+
+### New Content
+
+#### Events
+- Grief
+- Last of the Pack
+- Founded (lost tie) ×4 — religion founded tie events made non-internal
+- The Wanderers
+- Tribal Truce Offer (no war due to alliance)
+- "A Talent for Geometry" study event gains a 3rd option
+
+#### Event Changes
+- Multiple events removed `SUBJECT_CITY_GARRISON` requirement (~6 events loosened)
+- "Date Night" — removed "No" options for both male and female variants
+- "Happiness: Valuable Experience" rebalanced — Astute option now gives Cunning trait + Discipline; Wisdom option now gives Educated trait
+- Tribe Eliminated cognomen event weight reduced 8→3
+- Several events had weights increased from 1 to 4–6
+- Tower of Silence event expanded to include Hinduism (via SubjectAny)
+- Duplicated `SUBJECT_PLAYER_THEM` replaced with `SUBJECT_PLAYER_PEACE_OR_TRUCE` (bug fix)
+
+#### Player Options
+- **Disable Turn Start Cycling** (`NO_TURN_START_CYCLE`) — new
+- **Disable Automatic Cycling** (`DISABLE_ALL_CYCLING`) — new
+- Unit Cycling and Fatigue Cycling moved to end of options list
+
+#### Stats
+- `WORKER_TURNS_STAT` — tracks worker turns spent building improvements
+
+### UI / Client
+
+- **Tech tree search** — new `TechTreeSearchFilterType` enum with categories (Tech, Unit, Council, Improvement, Law, Theology, Project, Mission, Bonus); text search with category filters, max 20 results, clickable results center tree on tech. New widget types `TECH_TREE_SEARCH`, `TECH_TREE_SEARCH_FILTER`, `TECH_TREE_SEARCH_RESULT`
+- **Unit cycling options** — `Player.isTurnStartCycling()` and `Player.isUnitCycling()` convenience methods; `ClientSelection.startCycle()` respects new options; `cycleFromUnit()` called after attack to auto-advance; hotseat calls `clearCycles()` before `startCycle()` on player switch
+- **Water control visualization** — per-tile alpha values: owned tiles at alpha 127, preview at 63; water control preview now team-aware via `isWaterControlPreview(Tile, TeamType)`; ship anchoring color changed from white to more transparent
+- **Worker filters** now show improvements not currently valid due to culture level restrictions; `bTestTerritory` changed to `(eFilter == WorkerActionFilter.GENERAL)`; `canHaveImprovement` passes `bTestEnabled: eFilter == WorkerActionFilter.GENERAL`
+- **Dynasty entries** in Encyclopedia labeled with dynasty name instead of first ruler name
+- **Records screen** displays Improvements Controlled and Improvements Finished stats separately; Worker Turns stat added; Disciples no longer counted in Workers Produced
+- **Improvement tooltip** now receives building `Unit` and shows cooldown warning when relevant
+- **Improvement theology potential bonuses** added to help text — new `maaiTheologyYieldOutput` display on improvement classes
+- **Damage preview fixes** — non-hostile and hidden unit damage now included in mouseover text; `isAffectedByMouseover()` always uses `bCheckHostile: false`; health bar shows damage only from hostile units with visibility; damage text no longer shows on units other than top defender
+- **City counterattack** now shown in attack preview
+- **Critical hit and Culture Level** concept text improvements
+- **Hurry tooltip** shows explanation text when invalid specialist cannot be hurried
+- **Specialist build warning** — HelpText now warns when current specialist being built is no longer valid
+- **Tile widget refactoring** — inline display logic extracted into virtual methods (`isShowTileYieldPreview`, `isShowTileRecommendations`, `isShowTileResource`, etc.) enabling subclass customization; yields overlay checks team ownership instead of player ownership
+- **Unit widget fixes** — promotion chevron material changed to `UIWorldOutlineUnitWidget`; damage preview text moved outside healthbar hierarchy; sort order changed (-5→8)
+- **Minimap** — removed camera snapback when clicking minimap on city screen
+- **Network games** — more frequent updates in browser; non-host observers can send chat messages; new `ItemType.REHOST` for rehosting unlisted matches; chat distinguishes observer vs host labels
+- **DLC content filtering** — map editor, game editor, portrait editor, event browser, tooltips, encyclopedias all filter by `isContentEnabled(GameContentType)`; new centralized `HelpText.isContentEnabled()` and `isSourceContentEnabled()` utility methods
+- **Relationships tab** reordered — families shown first, then religions; religions also show if player `hasReligion()`
+- **Encyclopedia updates** — "Tutorial: Grand Vizier" added; "Councilors" section on DLC Summary pages; Council concept merged with Councilor; removed unhelpful Clergy links; updated Caravan Mission concept text
+- **Colorblind filter** — fixed menu transparent backgrounds rendering as blank; filter added to UI overlay camera
+- **Fog of war rendering** — tile updates now deferred via dirty tile lists, processed in batch during `Update()`; new `Tile.hasRevealedHistory(TeamType)` method; timeline start turn changed from 0 to 1
+- **Camera optimization** — city mode only recalculates target look-at when dirty (`isCityDirty` flag)
+- **Scrollable panels** — scrolling disabled when `UIInputField` is focused (prevents scroll hijacking while typing)
+- **Increased Cyrillic sampling** point size for better rendering
+- **Family tag grammar pass** and text localization updates
+
+### Bug Fixes
+
+- **Unit widget stacking** — fixed incorrect stacking; back-of-stack icons no longer sorted behind water
+- **Kill preview icon** — no longer draws behind city widget
+- **Unit cycling option** — fixed reversed logic; fixed cycling after attacking
+- **Worker filters** — fixed showing for non-allied units
+- **Unit build list** — fixed not showing valid improvements on mouseover tile with Ctrl
+- **Occurrence notifications** — fixed showing as started when set as pending via bonus (`mbOccurrenceSetPending` check added in 5 places in PlayerBonus.cs)
+- **Raider AI** — removed special case that nulled move tile for raiding units; now uses same candidate filtering as non-raiding. Attack move validation gains `canOccupyTile` check
+- **File browser** — fixed game UI registering clicks while file browser is open
+- **Custom overlay** — fixed getting cleared by temporary road overlay; road-building auto-overlay only clears when unit can actually build roads
+- **Colorblind filter** — fixed transparent backgrounds rendering as blank
+- **Female worker tools** — fixed being tinted by team color
+- **Wildfire rendering** — fixed pink models in burning cut scrub
+- **Main menu color** — fixed looking different on minimum detail settings
+- **Premade characters** — fixed Family, Tribe, and Nation sometimes not being assigned; `createCharacterSafe()` now falls back to XML-defined values
+- **Archetype assignment** — fixed bug
+- **Link colors** — fixed colors getting applied to links that no longer exist
+- **Simultaneous events** — fixed characters both leaving nation and becoming governor/general
+- **Event Browser** — fixed loading of dependent mods
+- **Unit damage text** — fixed sometimes being incorrectly updated
+- **Mac hotkeys** — fixed Cmd key interaction when assigning hotkeys; Windows key presses now skipped in key tracking
+- **Remove Dissent projects** — fixed being able to be queued multiple times
+- **Suppress Dissent projects** — fixed only being completable once per city
+- **Marsh tiles** — fixed being replaced by Urban during map generation (fresh water sources can no longer be made urban)
+- **Egypt improvement costs** — fixed cost discounts for adjacent improvements of different team
+- **Rebel/Anarchy fatigue** — fixed receiving tribe-level fatigue bonus
+- **Bonus improvement placement** — fixed sometimes being placed on bad tile
+- **Map script preservation** — fixed not being preserved when using Reroll Game with random map script; restart now resolves random map class to actual before restarting
+- **MP setup** — fixed Player 1 name and player archetypes not being saved
+- **Alliance text** — fixed help text typo about alliance with Ruthless AI; fixed "Blackmailed by" relationship text
+- **Player info panels** — fixed not getting hidden when selecting unmet nation
+- **City production list** — fixed icons sometimes not showing
+- **Governor tooltip** — fixed flickering on city list screen (tooltip location moved to parent container)
+- **Family/religion order** — fixed tab tooltip ordering
+- **Tribe units** — fixed sometimes not moving when they wanted to move
+- **Anchor ranges** — fixed sometimes not showing
+- **Selection clearing** — fixed not clearing when closing event popups; decision popup tracks `decisionID` and clears on dismiss
+- **Point Symmetry maps** — fixed city sites and resources not always being symmetric near center; `AddMiddleMapCities()` now supports `CenterpointSymmetricMap`
+- **Fog of war units** — fixed visual issue where units exiting fog and attacking immediately during AI turn disappear after attacking
+- **Yield previews** — fixed sticking when cycling units
+- **Unit crit chance** — fixed not updating properly on attack preview
+- **Alliance notifications** — fixed doubled notifications for starting/ending tribal alliances (now excludes player who gained/lost alliance)
+- **One Continent per Team** — fixed map option with multiple players per team
+- **Tile ownership reveal** — fixed not being revealed to agent player when new tiles added; agent characters now trigger tile reveal when territory changes
+- **Terrain normals** — fixed some terrain tiles not rendering correctly
+- **Allied vision fog** — fixed flickering from allied vision
+- **Pharaohs timeline** — fixed rendering on first turn in scenarios
+- **Mod loading** — fixed strict mode on startup when loading external mods; mod path now propagates strict mode setting
+- **Play to Win opinion** — fixed operator precedence bug: added parentheses around `(calculatePlayerOpinionPlayToWin(...) ?? 0) - iValue`
+
+### Map Script System
+
+- **Tile locking refactored** — old `LockTileTerrain(tile, terrain, height)` split into three separate systems: `LockTileTerrain()`, `LockTileHeight()`, `LockTileVegetation()`, each with `force` parameter and boolean return value. `IsTerrainLockedAny()` checks all three; `UnlockTileTerrain()` clears all. All 17+ map scripts updated to use new API
+- **Max teams per map** — new `InfoMapClass.miMaxTeams` field; `GetMaxTeams()` static method on map scripts; `GetRandomMapClass()` gains `iNumTeams` parameter
+- **Map content filtering** — ownership check moved from registration-time in `Infos.cs` to display-time in `InfoHelpers.GetAvailableMapsScripts()`
+- **Start placement** — players on different land areas get heavily penalized in distance scoring (prevents cross-water starts appearing close)
+- **Resource placement** — min-distance check uses `getTilesInRange` instead of iterating all placed resources; `placedResources.Clear()` at start of `AddResources()`
+- **Boundary handling** — removed "remove unreachable areas" step that marked non-main-area tiles as boundary; small boundary islands still cleaned up
+- **Coast generation** — lakes adjacent to salt water now promoted to coast height
+- **Urban tile validation** — fresh water sources can no longer be made urban
+- **MapScriptDisjunction** — fields changed from private to `protected` for subclass access
+- **MapScriptTumblingMountain** — major refactor: channel mountains now created during `GenerateLand()` instead of post-build; overrides `SetUnreachableAreas()`, `BuildContinents()`, `GetRiverSources()`, `IsPotentialRiverDelta()`, `AddMountainRangeNames()`
+- 4 new map scripts (untracked files, DLC-related): `MapScriptDota`, `MapscriptJungle`, `MapscriptMountainPass`, `MapscriptWetlands`
+
+### Fresh Water System Refactored
+
+- `InfoImprovement.mbFreshWaterValid` **removed** — fresh water access moved to `InfoTerrainTarget.mbFreshWaterAccess`
+- `TileData.isFreshWaterAccess()` new overload for map generation context (not just live `Tile`)
+- `TileData.isTerrainTarget()` now takes optional `adjacent` function for fresh water and adjacent terrain checks
+- `TileData.isRiver()` refactored with `Func<DirectionType, TileData>` overload for context-free river detection
+
+### Vegetation Removal Refactored
+
+- `canRemoveVegetation()` gains `bTestOrders` parameter — when false, skips `canAct()` orders check (used during improvement placement validation)
+- New Jungle vegetation type added (DLC): movement cost 18, +75% ranged defense, requires Land Consolidation tech to remove
+
+### Egypt Campaign Scenarios
+
+- All 6 Egypt scenarios refactored — victory/defeat achievement logic extracted into reusable `DoMinorVictory()`, `DoMajorVictory()`, `DoMinorDefeat()`, `DoMajorDefeat()` methods. Major victories now properly chain through minor victory achievements
+- Egypt Scenarios 2 and 3: `LAW_DIVINE_RULE` added as active starting law (compensates for Clerics losing free Divine Rule on founding)
+- Pharaohs scenarios: major defeat/victory now also awards minor defeat/victory achievements
+
+### Scenario Text Consolidation
+
+- `text-egypt-change.xml` **deleted** — content moved into `text-egypt-other.xml` with proper localization
+- `text-greece4-change.xml` **deleted** — content merged into `text-greece4-misc.xml`
+- `text-learnToPlay1-change.xml` **deleted** — content merged into `text-learnToPlay1.xml`
+- Carthage campaign: multiple `{FAMILY-1}` references fixed to use proper grammatical gender variants
+
+### Empires of the Indus DLC (Pre-loaded, Not Yet Released)
+
+Content is shipped in game files but gated behind `GameContentType.EMPIRES_OF_THE_INDUS` (Steam AppID 4129630). Game of the Week has a 28-day preview window starting April 1, 2026 that enables the DLC content with rotating nations and new map scripts. Pre-loaded content includes:
+
+- **3 new nations**: Maurya (Indian, Hindu), Tamil/Tamilakam (Indian, coalition mechanic), Yuezhi (nomadic, tribal)
+- **2 new religions**: Hinduism (pagan, hidden/no natural spread, forced theologies), Buddhism (requires 4 theologies + Philosophy law, 10% spread)
+- **1 new tribe**: Huns (organized, diplomatic, mercenary, Hunnic Cavalry units)
+- **1 new vegetation**: Jungle (high movement cost, ranged defense, tech-gated removal)
+- **~10 new units**: Assault/Armoured Elephant (Maurya), Steppe Rider/Kushan Cavalry/Warlords (Yuezhi), Javelin/Archer Elephant (Tamil), Hunnic Cavalry, Hinduism/Buddhism Disciples
+- **5 new wonders**: Stupa, The Mahavihara, Monumental Buddhas, Hill Fort, Pillar Edict
+- **~8 new shrines**: Hindu shrines for Maurya and Yuezhi
+- **~5 resources**: Jade, Ebony, Spices, Silk (all given full terrain data, previously abstract placeholders), Wootz Steel (Tamil national ability)
+- **~60+ new characters** with full dynasty trees across 15 dynasties
+- **~25+ new traits**: dynasty, combat, religious, item traits
+- **~30+ new achievements**
+- **4 new map scripts**: Dota, Jungle, Mountain Pass, Wetlands (+ 8 new map options)
+- **New event classes**: Family Supremacy, Hun Events
+- **New missions**: Vassalize Tribe (Yuezhi), Quell Dissent (Hinduism/Buddhism)
+- **New occurrences**: Religious Upheaval, Pax Kushana
+- **UI frame**: India-themed event popup frame
+- Extensive DLC content gating added throughout: map editor, portrait editor, event browser, hints, tutorials, help text, tooltips, encyclopedias all filter by `isContentEnabled()`
+
+### Modder-Breaking Changes
+
+- `InfoImprovement.mbFreshWaterValid` **removed** — use `InfoTerrainTarget.mbFreshWaterAccess` instead
+- `Tile.canHaveRoad()` signature changed — now takes `TeamType eVisibilityTeam` parameter
+- New `Tile.canAddRoad()` consolidates checks previously in `Player.canAddRoad()`
+- `canCounterattack()` gains `Unit pToUnit` parameter
+- `canRemoveVegetation()` gains `bTestOrders` parameter
+- `Player.isImprovementUnlocked()` gains optional `City` parameter
+- `LockTileTerrain()` API split into `LockTileTerrain()`, `LockTileHeight()`, `LockTileVegetation()` (map scripts)
+- `BONUS_FAMILYCLASS_CLERICS_SEAT` removed
+- `InfoEffectUnit.meGameContentDisplay`, `InfoVegetation.meGameContentDisplay`, `InfoTutorial.meGameContentRequired` — new DLC gating fields
+- `InfoProject.meGameOptionPrereq` — new field gating projects on game options
+- `EnumExtensions` changed to `partial class`
+- Family opinion yield formula: `getFamilyOpinion() + 1` → `getFamilyOpinion()` (affects mods that depend on opinion yield calculations)
+- Water control tile sets changed from `HashSet<(int, ColorType)>` to `HashSet<(int, ColorType, int)>` (added alpha)
+
 ## 2026-02-26 Hotfix (post-Update #143)
 
 ### Bug Fixes
