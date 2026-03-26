@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] - 2026-03-25
+
+- Fix text-add.xml template using `<English>` instead of `<en-US>` (game silently ignores `<English>`)
+
 ## [0.3.1] - 2026-03-09
 
 - Fix deploy scripts using displayName (with spaces) as mod folder name; use project directory name instead (#4)
