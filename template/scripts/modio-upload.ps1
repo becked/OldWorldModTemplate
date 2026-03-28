@@ -3,7 +3,8 @@
 #
 # Prerequisites:
 #   1. Get an OAuth2 access token from https://mod.io/me/access (read+write)
-#   2. .env file with MODIO_ACCESS_TOKEN, MODIO_GAME_ID (MODIO_MOD_ID created automatically on first run)
+#   2. Copy your API URL from https://mod.io/me/access (e.g. https://u-XXXX.modapi.io/v1)
+#   3. .env file with MODIO_API_URL, MODIO_ACCESS_TOKEN, MODIO_GAME_ID (MODIO_MOD_ID created automatically on first run)
 #
 # Usage: .\scripts\modio-upload.ps1 [-DryRun] [[-Changelog] "message"]
 # Examples:
@@ -34,6 +35,11 @@ try {
     $Token = [System.Environment]::GetEnvironmentVariable('MODIO_ACCESS_TOKEN', 'Process')
     if (-not $Token) {
         Write-Error "MODIO_ACCESS_TOKEN not set in .env. Get one from https://mod.io/me/access (OAuth 2 section, read+write)"
+    }
+
+    $ApiUrl = [System.Environment]::GetEnvironmentVariable('MODIO_API_URL', 'Process')
+    if (-not $ApiUrl) {
+        Write-Error "MODIO_API_URL not set in .env. Copy your API URL from https://mod.io/me/access (e.g. https://u-XXXX.modapi.io/v1)"
     }
 
     $GameId = [System.Environment]::GetEnvironmentVariable('MODIO_GAME_ID', 'Process')
@@ -94,7 +100,7 @@ try {
         exit 0
     }
 
-    $BaseUrl = "https://api.mod.io/v1/games/$GameId"
+    $BaseUrl = "$ApiUrl/games/$GameId"
 
     # Step 1: Create or update mod profile
     if (-not $ModId) {

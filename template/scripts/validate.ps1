@@ -5,6 +5,7 @@
 #   - text-*-add.xml files have UTF-8 BOM (ef bb bf)
 #   - All XML files in Infos/ are well-formed
 #   - ModInfo.xml is well-formed and has a <modversion> tag
+#   - ModInfo.xml <description> is 250 characters or fewer (mod.io limit)
 #
 # Usage: .\scripts\validate.ps1 [-ProjectDir path]
 # Exit code: 0 on success, 1 on failure
@@ -42,6 +43,12 @@ if (-not (Test-Path 'ModInfo.xml')) {
         $version = $modInfo.SelectSingleNode('//modversion')
         if (-not $version) {
             [Console]::Error.WriteLine("FAIL: ModInfo.xml missing <modversion> tag")
+            $Errors++
+        }
+
+        $summary = $modInfo.SelectSingleNode('//description')
+        if ($summary -and $summary.InnerText.Length -gt 250) {
+            [Console]::Error.WriteLine("FAIL: ModInfo.xml <description> is $($summary.InnerText.Length) characters (mod.io limit is 250)")
             $Errors++
         }
     }
