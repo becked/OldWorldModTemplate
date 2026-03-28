@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3] - 2026-03-28
+
+- Migrate mod.io upload script from deprecated `api.mod.io` domain to new `*.modapi.io` API URL (requires `MODIO_API_URL` in `.env`)
+- Add validation check for ModInfo.xml `<description>` length (mod.io 250-character limit)
+
 ## [0.3.2] - 2026-03-25
 
 - Fix text-add.xml template using `<English>` instead of `<en-US>` (game silently ignores `<English>`)

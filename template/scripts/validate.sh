@@ -5,6 +5,7 @@
 #   - text-*-add.xml files have UTF-8 BOM (ef bb bf)
 #   - All XML files in Infos/ are well-formed
 #   - ModInfo.xml is well-formed and has a <modversion> tag
+#   - ModInfo.xml <description> is 250 characters or fewer (mod.io limit)
 #
 # Usage: ./scripts/validate.sh
 # Exit code: 0 on success, 1 on failure
@@ -31,6 +32,13 @@ else
     VERSION=$(sed -n 's/.*<modversion>\([^<]*\)<\/modversion>.*/\1/p' ModInfo.xml)
     if [ -z "$VERSION" ]; then
         echo "FAIL: ModInfo.xml missing <modversion> tag" >&2
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    SUMMARY=$(sed -n 's/.*<description>\([^<]*\)<\/description>.*/\1/p' ModInfo.xml)
+    SUMMARY_LEN=${#SUMMARY}
+    if [ "$SUMMARY_LEN" -gt 250 ]; then
+        echo "FAIL: ModInfo.xml <description> is $SUMMARY_LEN characters (mod.io limit is 250)" >&2
         ERRORS=$((ERRORS + 1))
     fi
 fi

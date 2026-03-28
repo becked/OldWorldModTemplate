@@ -3,7 +3,8 @@
 #
 # Prerequisites:
 #   1. Get an OAuth2 access token from https://mod.io/me/access (read+write)
-#   2. .env file with MODIO_ACCESS_TOKEN, MODIO_GAME_ID (MODIO_MOD_ID created automatically on first run)
+#   2. Copy your API URL from https://mod.io/me/access (e.g. https://u-XXXX.modapi.io/v1)
+#   3. .env file with MODIO_API_URL, MODIO_ACCESS_TOKEN, MODIO_GAME_ID (MODIO_MOD_ID created automatically on first run)
 #
 # Usage: ./scripts/modio-upload.sh [--dry-run] [changelog]
 # Examples:
@@ -31,6 +32,12 @@ fi
 if [ -z "$MODIO_ACCESS_TOKEN" ]; then
     echo "Error: MODIO_ACCESS_TOKEN not set in .env"
     echo "Get one from https://mod.io/me/access (OAuth 2 section, read+write)"
+    exit 1
+fi
+
+if [ -z "$MODIO_API_URL" ]; then
+    echo "Error: MODIO_API_URL not set in .env"
+    echo "Copy your API URL from https://mod.io/me/access (e.g. https://u-XXXX.modapi.io/v1)"
     exit 1
 fi
 
@@ -118,7 +125,7 @@ if [ -z "$MODIO_MOD_ID" ]; then
 
     CURL_CREATE_ARGS=(
         -X POST
-        "https://api.mod.io/v1/games/$MODIO_GAME_ID/mods"
+        "$MODIO_API_URL/games/$MODIO_GAME_ID/mods"
         -H "Authorization: Bearer $MODIO_ACCESS_TOKEN"
         -H "Accept: application/json"
         --form-string "name=$MOD_NAME"
@@ -162,7 +169,7 @@ else
     fi
 
     RESPONSE=$(curl -sS -w "\n%{http_code}" -X PUT \
-        "https://api.mod.io/v1/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID" \
+        "$MODIO_API_URL/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID" \
         -H "Authorization: Bearer $MODIO_ACCESS_TOKEN" \
         -H "Content-Type: application/x-www-form-urlencoded" \
         -H "Accept: application/json" \
@@ -185,7 +192,7 @@ if [ -f "logo-512.png" ]; then
     echo "=== Uploading logo ==="
 
     RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST \
-        "https://api.mod.io/v1/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID/media" \
+        "$MODIO_API_URL/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID/media" \
         -H "Authorization: Bearer $MODIO_ACCESS_TOKEN" \
         -H "Accept: application/json" \
         -F "logo=@logo-512.png")
@@ -237,7 +244,7 @@ echo "Mod ID: $MODIO_MOD_ID"
 
 CURL_ARGS=(
     -X POST
-    "https://api.mod.io/v1/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID/files"
+    "$MODIO_API_URL/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID/files"
     -H "Authorization: Bearer $MODIO_ACCESS_TOKEN"
     -H "Accept: application/json"
     -F "filedata=@modio_upload.zip"
