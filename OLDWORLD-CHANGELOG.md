@@ -1,5 +1,29 @@
 # Old World Reference Changelog
 
+## 2026-03-25 Hotfix (v1.0.82832)
+
+18 files changed across Reference/Source, Reference/XML, and decompiled (bulk is decompiler variable renaming). Multiplayer networking fix.
+
+### Multiplayer
+
+- **Removed "Rehost" feature entirely** — `IsMatchUnlisted` property, `RestartServer()` method, `ItemType.REHOST` enum value, pause menu "Rehost" option, and tooltip text all removed from `IApplication`, `ClientUI`, `AppMain`, `DefaultApplication`, `NullApplication`, `HelpText.Widget`, and `Enums.cs`
+- **Relay server connection reworked** — `NetTransportClient.PlayerRelayData()` and `NetTransportServer.HostRelayData()` now use Unity's `allocation.ToRelayServerData(RelayProtocol.UDP)` instead of manually constructing `RelayServerData` from endpoints, allocation IDs, connection data, and HMAC keys. Removed `connectionType` parameter (was defaulting to `"dtls"`, now hardcoded to UDP)
+- **Match verification interval increased** from 2 seconds to 45 seconds (`matchCheckIntervalSeconds`), reducing server polling load
+- **Smarter match verification** — host match check now skips verification when all players are connected (`AreAllPlayersConnected()`), and auto-refreshes join code when no clients are connected before allocation expires
+- **Removed `databaseUpdateTimer`** — previously triggered `UpdateMatchServer` calls every 30 seconds; database updates now only happen on match recreation or join code changes
+- **Removed `driver.ScheduleUpdate()` call** during client connection loop — was in the connecting wait loop, now just yields
+- **`RestartServer()` simplified** — now calls `OnLocalServerListed(null)` directly instead of going through the removed `RecreateMatch()` method
+- **`OnLocalServerListed` restructured** — consolidated `RecreateMatch()` logic inline; removed `IsMatchUnlisted` state tracking (matches are now either valid or recreated, no "unlisted" intermediate state)
+
+### Map Generation
+
+- **Lake-next-to-ocean fix now runs unconditionally** — `DefaultMapScript.cs` previously only ran the lake adjacency fix for centerpoint-symmetric maps (`if (CenterpointSymmetricMap)`); now runs for all map types. Comment: "no lakes next to ocean - possible with locked terrain or point symmetry"
+
+### UI
+
+- **Removed `FONT_LIBERATION_GLOW` font entry** from `font.xml` (LiberationSans with TraitFX material)
+- **`ChooseLawsPopup` ItemType index shifted** — `134` → `133` due to REHOST enum removal
+
 ## 2026-03-18 Update (Update #144)
 
 321 files changed (+109,146 / -67,097 lines) across Source, XML, and decompiled. Bulk of additions are pre-loaded Empires of the Indus DLC content (gated behind `EMPIRES_OF_THE_INDUS` content check, DLC not yet released).
