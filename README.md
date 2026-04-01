@@ -74,6 +74,22 @@ YourModName/
 
 See `docs/modding-guide-xml.md` in your generated project for an XML modding guide, or `docs/modding-guide-csharp.md` for C# / Harmony patching.
 
+## Monorepo Mode
+
+If you maintain multiple mods in a monorepo with shared scripts and docs, use `--monorepo` to create a mod directly inside the monorepo's `mods/` directory. This skips shared infrastructure (scripts, docs, .gitignore) and creates only mod-specific files plus a per-mod `.env` and `CLAUDE.md`.
+
+**macOS / Linux:**
+```bash
+./create-mod.sh --monorepo /path/to/monorepo
+```
+
+**Windows (PowerShell):**
+```powershell
+.\create-mod.ps1 -Monorepo C:\path\to\monorepo
+```
+
+The monorepo must have a `mods/` directory and `scripts/helpers.sh` (or `helpers.ps1`).
+
 ## Features
 
 - **XML and C# support** — start with XML-only or add Harmony-based C# patching; build scripts detect which mode you're using

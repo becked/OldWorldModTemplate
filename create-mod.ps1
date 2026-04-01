@@ -9,13 +9,17 @@
 # Non-interactive (for CI / scripting):
 #   .\create-mod.ps1 -ModName "My Mod" -Author "Jeff" -ModType xml
 #   .\create-mod.ps1 -ModName "My Mod" -ModType csharp -TemplateDir ./template
+#
+# Monorepo mode (creates mod inside an existing monorepo):
+#   .\create-mod.ps1 -ModName "My Mod" -ModType csharp -Monorepo C:\path\to\monorepo
 
 param(
     [string]$ModName,
     [string]$Author,
     [ValidateSet('xml', 'csharp', '')]
     [string]$ModType,
-    [string]$TemplateDir
+    [string]$TemplateDir,
+    [string]$Monorepo
 )
 
 $ErrorActionPreference = 'Stop'
@@ -81,7 +85,24 @@ if ([string]::IsNullOrWhiteSpace($ModType)) {
 # ── Download and extract template ────────────────────────────────────────────
 
 $PascalName = ConvertTo-PascalCase -Name $ModName
-$FolderName = $PascalName
+
+# Support MONOREPO_PATH env var as fallback
+if ([string]::IsNullOrWhiteSpace($Monorepo) -and $env:MONOREPO_PATH) {
+    $Monorepo = $env:MONOREPO_PATH
+}
+
+if (-not [string]::IsNullOrWhiteSpace($Monorepo)) {
+    # Validate monorepo structure
+    $MonorepoMods = Join-Path $Monorepo 'mods'
+    $MonorepoHelpers = Join-Path $Monorepo 'scripts/helpers.sh'
+    $MonorepoHelpersPs1 = Join-Path $Monorepo 'scripts/helpers.ps1'
+    if (-not (Test-Path $MonorepoMods) -or (-not (Test-Path $MonorepoHelpers) -and -not (Test-Path $MonorepoHelpersPs1))) {
+        Write-Error "'$Monorepo' doesn't look like a monorepo (missing mods/ or scripts/helpers.*)"
+    }
+    $FolderName = Join-Path $MonorepoMods $PascalName
+} else {
+    $FolderName = $PascalName
+}
 
 if (Test-Path $FolderName) {
     Write-Host ''
@@ -123,8 +144,10 @@ if ($TemplateDir) {
 
 Push-Location $FolderName
 try {
-    # Rename gitignore → .gitignore
-    Rename-Item 'gitignore' '.gitignore'
+    # Rename gitignore → .gitignore (skipped in monorepo mode — will be removed)
+    if ([string]::IsNullOrWhiteSpace($Monorepo)) {
+        Rename-Item 'gitignore' '.gitignore'
+    }
 
     # ModInfo.xml
     $modInfo = Get-Content 'ModInfo.xml' -Raw
@@ -171,32 +194,100 @@ All notable changes to this project will be documented in this file.
         Remove-Item 'MyMod.csproj' -ErrorAction SilentlyContinue
         Remove-Item 'Source' -Recurse -ErrorAction SilentlyContinue
 
-        # Strip C#-only entries from .gitignore
-        $gi = Get-Content '.gitignore' | Where-Object { $_ -notmatch '^bin/' -and $_ -notmatch '^obj/' }
-        Set-Content '.gitignore' $gi
+        # Strip C#-only entries from .gitignore (skip in monorepo — no .gitignore)
+        if ([string]::IsNullOrWhiteSpace($Monorepo)) {
+            $gi = Get-Content '.gitignore' | Where-Object { $_ -notmatch '^bin/' -and $_ -notmatch '^obj/' }
+            Set-Content '.gitignore' $gi
+        }
     }
 } finally {
     Pop-Location
 }
 
+# ── Monorepo cleanup ────────────────────────────────────────────────────────
+
+if (-not [string]::IsNullOrWhiteSpace($Monorepo)) {
+    # Remove shared infrastructure (lives at monorepo root)
+    Remove-Item (Join-Path $FolderName 'scripts') -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $FolderName 'docs') -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $FolderName '.env.example') -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $FolderName 'gitignore') -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $FolderName '.gitignore') -Force -ErrorAction SilentlyContinue
+
+    # Create per-mod .env
+    @"
+STEAM_WORKSHOP_ID=""
+MODIO_MOD_ID=""
+"@ | Set-Content (Join-Path $FolderName '.env')
+
+    # Create skeleton CLAUDE.md
+    @"
+# $ModName — CLAUDE.md
+
+## What This Mod Does
+
+<Describe the mod's purpose and user-facing behavior.>
+
+## Mod Type
+
+<XML-only | C# (Harmony)>
+
+## Game Systems Touched
+
+- <System> — <which files, what they modify>
+
+## Known Fragility Points
+
+- <What might break on game updates. Be specific.>
+
+## File Overview
+
+- ``Infos/<file>.xml`` — <what it adds/overrides>
+
+## Testing Notes
+
+<How to verify the mod works in-game.>
+"@ | Set-Content (Join-Path $FolderName 'CLAUDE.md')
+}
+
 # ── Done ─────────────────────────────────────────────────────────────────────
 
 Write-Host ''
-Write-Host "Created '$ModName' in ./$FolderName/"
-Write-Host ''
-Write-Host 'What''s inside:'
-Write-Host '  ModInfo.xml          Mod metadata (name, author, version)'
-Write-Host '  Infos/               XML data files (bonuses, events, text, etc.)'
-if ($ModTypeChoice -eq '2') {
-    Write-Host "  Source/               C# source files (Harmony patches)"
-    Write-Host "  $PascalName.csproj   C# build configuration"
+if (-not [string]::IsNullOrWhiteSpace($Monorepo)) {
+    Write-Host "Created '$ModName' in $FolderName/"
+    Write-Host ''
+    Write-Host 'What''s inside:'
+    Write-Host '  ModInfo.xml          Mod metadata (name, author, version)'
+    Write-Host '  Infos/               XML data files (bonuses, events, text, etc.)'
+    if ($ModTypeChoice -eq '2') {
+        Write-Host "  Source/               C# source files (Harmony patches)"
+        Write-Host "  $PascalName.csproj   C# build configuration"
+    }
+    Write-Host '  CLAUDE.md            AI context (fill in mod details)'
+    Write-Host '  .env                 Per-mod config (workshop ID, modio ID)'
+    Write-Host ''
+    Write-Host 'Next steps:'
+    Write-Host "  1. Edit mods/$PascalName/CLAUDE.md with mod details"
+    Write-Host "  2. Add mod content to mods/$PascalName/Infos/"
+    Write-Host "  3. Run ./scripts/validate.sh --mod $PascalName"
+    Write-Host "  4. Run ./scripts/deploy.sh --mod $PascalName"
+} else {
+    Write-Host "Created '$ModName' in ./$FolderName/"
+    Write-Host ''
+    Write-Host 'What''s inside:'
+    Write-Host '  ModInfo.xml          Mod metadata (name, author, version)'
+    Write-Host '  Infos/               XML data files (bonuses, events, text, etc.)'
+    if ($ModTypeChoice -eq '2') {
+        Write-Host "  Source/               C# source files (Harmony patches)"
+        Write-Host "  $PascalName.csproj   C# build configuration"
+    }
+    Write-Host '  scripts/             Deploy, validate, and upload scripts'
+    Write-Host '  docs/                Modding guides and reference'
+    Write-Host ''
+    Write-Host 'Next steps:'
+    Write-Host "  1. cd $FolderName"
+    Write-Host '  2. Copy .env.example to .env and set OLDWORLD_MODS_PATH'
+    Write-Host '  3. Add your mod content to Infos/'
+    Write-Host '  4. Run .\scripts\deploy.ps1 to test locally'
 }
-Write-Host '  scripts/             Deploy, validate, and upload scripts'
-Write-Host '  docs/                Modding guides and reference'
-Write-Host ''
-Write-Host 'Next steps:'
-Write-Host "  1. cd $FolderName"
-Write-Host '  2. Copy .env.example to .env and set OLDWORLD_MODS_PATH'
-Write-Host '  3. Add your mod content to Infos/'
-Write-Host '  4. Run .\scripts\deploy.ps1 to test locally'
 Write-Host ''

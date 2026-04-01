@@ -10,8 +10,23 @@
 # Non-interactive (for CI / scripting):
 #   MOD_NAME="My Mod" AUTHOR="Jeff" MOD_TYPE=xml ./create-mod.sh
 #   MOD_NAME="My Mod" MOD_TYPE=csharp TEMPLATE_DIR=./template ./create-mod.sh
+#
+# Monorepo mode (creates mod inside an existing monorepo):
+#   ./create-mod.sh --monorepo /path/to/monorepo
+#   MONOREPO_PATH=/path/to/monorepo MOD_NAME="My Mod" MOD_TYPE=csharp ./create-mod.sh
 
 set -e
+
+# ── Parse flags ─────────────────────────────────────────────────────────────
+
+# MONOREPO_PATH can be set via env or --monorepo flag
+MONOREPO_PATH="${MONOREPO_PATH:-}"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --monorepo) MONOREPO_PATH="$2"; shift 2 ;;
+        *) break ;;
+    esac
+done
 
 REPO="becked/OldWorldModTemplate"
 BRANCH="main"
@@ -80,7 +95,18 @@ fi
 # ── Download and extract template ────────────────────────────────────────────
 
 PASCAL_NAME=$(to_pascal_case "$MOD_NAME")
-FOLDER_NAME="$PASCAL_NAME"
+
+if [ -n "$MONOREPO_PATH" ]; then
+    # Validate monorepo structure
+    if [ ! -d "$MONOREPO_PATH/mods" ] || { [ ! -f "$MONOREPO_PATH/scripts/helpers.sh" ] && [ ! -f "$MONOREPO_PATH/scripts/helpers.ps1" ]; }; then
+        echo ""
+        echo "Error: '$MONOREPO_PATH' doesn't look like a monorepo (missing mods/ or scripts/helpers.*)"
+        exit 1
+    fi
+    FOLDER_NAME="$MONOREPO_PATH/mods/$PASCAL_NAME"
+else
+    FOLDER_NAME="$PASCAL_NAME"
+fi
 
 if [ -d "$FOLDER_NAME" ]; then
     echo ""
@@ -121,8 +147,10 @@ fi
 
 cd "$FOLDER_NAME"
 
-# Rename gitignore → .gitignore
-mv gitignore .gitignore
+# Rename gitignore → .gitignore (skipped in monorepo mode — will be removed)
+if [ -z "$MONOREPO_PATH" ]; then
+    mv gitignore .gitignore
+fi
 
 # ModInfo.xml
 sed -i.bak "s|<displayName>My Mod Name</displayName>|<displayName>$MOD_NAME</displayName>|" ModInfo.xml
@@ -167,29 +195,95 @@ else
     rm -f MyMod.csproj
     rm -rf Source/
 
-    # Strip C#-only entries from .gitignore
-    sed -i.bak '/^bin\//d; /^obj\//d' .gitignore
-    rm -f .gitignore.bak
+    # Strip C#-only entries from .gitignore (skip in monorepo — no .gitignore)
+    if [ -z "$MONOREPO_PATH" ]; then
+        sed -i.bak '/^bin\//d; /^obj\//d' .gitignore
+        rm -f .gitignore.bak
+    fi
+fi
+
+# ── Monorepo cleanup ────────────────────────────────────────────────────────
+
+if [ -n "$MONOREPO_PATH" ]; then
+    # Remove shared infrastructure (lives at monorepo root)
+    # Note: we are already cd'd into $FOLDER_NAME
+    rm -rf scripts docs .env.example
+    rm -f gitignore .gitignore
+
+    # Create per-mod .env
+    cat > .env << 'ENV_EOF'
+STEAM_WORKSHOP_ID=""
+MODIO_MOD_ID=""
+ENV_EOF
+
+    # Create skeleton CLAUDE.md
+    cat > CLAUDE.md << CLAUDE_EOF
+# $MOD_NAME — CLAUDE.md
+
+## What This Mod Does
+
+<Describe the mod's purpose and user-facing behavior.>
+
+## Mod Type
+
+<XML-only | C# (Harmony)>
+
+## Game Systems Touched
+
+- <System> — <which files, what they modify>
+
+## Known Fragility Points
+
+- <What might break on game updates. Be specific.>
+
+## File Overview
+
+- \`Infos/<file>.xml\` — <what it adds/overrides>
+
+## Testing Notes
+
+<How to verify the mod works in-game.>
+CLAUDE_EOF
 fi
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 
 echo ""
-echo "Created '$MOD_NAME' in ./$FOLDER_NAME/"
-echo ""
-echo "What's inside:"
-echo "  ModInfo.xml          Mod metadata (name, author, version)"
-echo "  Infos/               XML data files (bonuses, events, text, etc.)"
-if [ "$MOD_TYPE_CHOICE" = "2" ]; then
-echo "  Source/               C# source files (Harmony patches)"
-echo "  $PASCAL_NAME.csproj   C# build configuration"
+if [ -n "$MONOREPO_PATH" ]; then
+    echo "Created '$MOD_NAME' in $FOLDER_NAME/"
+    echo ""
+    echo "What's inside:"
+    echo "  ModInfo.xml          Mod metadata (name, author, version)"
+    echo "  Infos/               XML data files (bonuses, events, text, etc.)"
+    if [ "$MOD_TYPE_CHOICE" = "2" ]; then
+    echo "  Source/               C# source files (Harmony patches)"
+    echo "  $PASCAL_NAME.csproj   C# build configuration"
+    fi
+    echo "  CLAUDE.md            AI context (fill in mod details)"
+    echo "  .env                 Per-mod config (workshop ID, modio ID)"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Edit mods/$PASCAL_NAME/CLAUDE.md with mod details"
+    echo "  2. Add mod content to mods/$PASCAL_NAME/Infos/"
+    echo "  3. Run ./scripts/validate.sh --mod $PASCAL_NAME"
+    echo "  4. Run ./scripts/deploy.sh --mod $PASCAL_NAME"
+else
+    echo "Created '$MOD_NAME' in ./$FOLDER_NAME/"
+    echo ""
+    echo "What's inside:"
+    echo "  ModInfo.xml          Mod metadata (name, author, version)"
+    echo "  Infos/               XML data files (bonuses, events, text, etc.)"
+    if [ "$MOD_TYPE_CHOICE" = "2" ]; then
+    echo "  Source/               C# source files (Harmony patches)"
+    echo "  $PASCAL_NAME.csproj   C# build configuration"
+    fi
+    echo "  scripts/             Deploy, validate, and upload scripts"
+    echo "  docs/                Modding guides and reference"
+    echo ""
+    echo "Next steps:"
+    echo "  1. cd $FOLDER_NAME"
+    echo "  2. Copy .env.example to .env and set OLDWORLD_MODS_PATH"
+    echo "  3. Add your mod content to Infos/"
+    echo "  4. Run ./scripts/deploy.sh to test locally"
 fi
-echo "  scripts/             Deploy, validate, and upload scripts"
-echo "  docs/                Modding guides and reference"
-echo ""
-echo "Next steps:"
-echo "  1. cd $FOLDER_NAME"
-echo "  2. Copy .env.example to .env and set OLDWORLD_MODS_PATH"
-echo "  3. Add your mod content to Infos/"
-echo "  4. Run ./scripts/deploy.sh to test locally"
 echo ""
