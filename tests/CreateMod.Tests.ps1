@@ -276,8 +276,9 @@ Describe 'create-mod.ps1 monorepo mode (C#)' {
         Test-Path (Join-Path $ModDir '.env.example') | Should -Be $false
     }
 
-    It 'does NOT have .gitignore' {
+    It 'does NOT have .gitignore or gitignore' {
         Test-Path (Join-Path $ModDir '.gitignore') | Should -Be $false
+        Test-Path (Join-Path $ModDir 'gitignore') | Should -Be $false
     }
 }
 
@@ -291,12 +292,12 @@ Describe 'create-mod.ps1 monorepo mode (XML-only)' {
 
         Push-Location $TempDir
         try {
-            & $PwshExe -NoProfile -File $CreateModScript -ModName 'XML Mono Mod' -Author '' -ModType xml -TemplateDir $TemplateDir -Monorepo $TempDir 2>$null
+            & $PwshExe -NoProfile -File $CreateModScript -ModName 'My Mono Mod' -Author '' -ModType xml -TemplateDir $TemplateDir -Monorepo $TempDir 2>$null
         } finally {
             Pop-Location
         }
 
-        $ModDir = Join-Path $TempDir 'mods/XmlMonoMod'
+        $ModDir = Join-Path $TempDir 'mods/MyMonoMod'
     }
     AfterAll {
         Remove-Item $TempDir -Recurse -Force -ErrorAction SilentlyContinue

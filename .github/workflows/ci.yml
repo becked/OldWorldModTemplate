@@ -174,16 +174,16 @@ jobs:
           mkdir -p mods scripts
           touch scripts/helpers.sh
 
-          MOD_NAME="XML Monorepo Mod" AUTHOR="CI Bot" MOD_TYPE=xml \
+          MOD_NAME="My Mono Mod" AUTHOR="CI Bot" MOD_TYPE=xml \
             TEMPLATE_DIR="$GITHUB_WORKSPACE/template" \
             bash "$GITHUB_WORKSPACE/create-mod.sh" --monorepo .
 
-          test -d mods/XmlMonorepoMod
-          test ! -f mods/XmlMonorepoMod/MyMod.csproj
-          test ! -d mods/XmlMonorepoMod/Source
-          test -d mods/XmlMonorepoMod/Infos
-          test -f mods/XmlMonorepoMod/CLAUDE.md
-          test -f mods/XmlMonorepoMod/.env
+          test -d mods/MyMonoMod
+          test ! -f mods/MyMonoMod/MyMod.csproj
+          test ! -d mods/MyMonoMod/Source
+          test -d mods/MyMonoMod/Infos
+          test -f mods/MyMonoMod/CLAUDE.md
+          test -f mods/MyMonoMod/.env
 
           echo "create-mod.sh monorepo XML: PASSED"
 

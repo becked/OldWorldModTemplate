@@ -211,6 +211,7 @@ if (-not [string]::IsNullOrWhiteSpace($Monorepo)) {
     Remove-Item (Join-Path $FolderName 'scripts') -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $FolderName 'docs') -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $FolderName '.env.example') -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $FolderName 'gitignore') -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $FolderName '.gitignore') -Force -ErrorAction SilentlyContinue
 
     # Create per-mod .env

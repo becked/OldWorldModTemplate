@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-04-01
+
+- Add `--monorepo` flag to `create-mod.sh` and `-Monorepo` to `create-mod.ps1` for scaffolding mods inside an existing monorepo
+- Monorepo mode creates only mod-specific files (ModInfo.xml, Infos/, Source/, CHANGELOG.md, workshop.vdf, mod-description.html) with a per-mod `.env` and skeleton `CLAUDE.md`
+- Skips shared infrastructure (scripts/, docs/, .gitignore, .env.example) that lives at the monorepo root
+
 ## [0.3.3] - 2026-03-28
 
 - Migrate mod.io upload script from deprecated `api.mod.io` domain to new `*.modapi.io` API URL (requires `MODIO_API_URL` in `.env`)

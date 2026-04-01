@@ -98,9 +98,9 @@ PASCAL_NAME=$(to_pascal_case "$MOD_NAME")
 
 if [ -n "$MONOREPO_PATH" ]; then
     # Validate monorepo structure
-    if [ ! -d "$MONOREPO_PATH/mods" ] || [ ! -f "$MONOREPO_PATH/scripts/helpers.sh" ]; then
+    if [ ! -d "$MONOREPO_PATH/mods" ] || { [ ! -f "$MONOREPO_PATH/scripts/helpers.sh" ] && [ ! -f "$MONOREPO_PATH/scripts/helpers.ps1" ]; }; then
         echo ""
-        echo "Error: '$MONOREPO_PATH' doesn't look like a monorepo (missing mods/ or scripts/helpers.sh)"
+        echo "Error: '$MONOREPO_PATH' doesn't look like a monorepo (missing mods/ or scripts/helpers.*)"
         exit 1
     fi
     FOLDER_NAME="$MONOREPO_PATH/mods/$PASCAL_NAME"
