@@ -208,6 +208,121 @@ Describe 'create-mod.ps1 C# scaffolding' {
     }
 }
 
+Describe 'create-mod.ps1 monorepo mode (C#)' {
+    BeforeAll {
+        $TempDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "createmod-mono-cs-$(Get-Random)"
+        New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
+
+        # Create mock monorepo structure
+        New-Item -ItemType Directory -Path (Join-Path $TempDir 'mods') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $TempDir 'scripts') -Force | Out-Null
+        New-Item -ItemType File -Path (Join-Path $TempDir 'scripts/helpers.ps1') -Force | Out-Null
+
+        Push-Location $TempDir
+        try {
+            & $PwshExe -NoProfile -File $CreateModScript -ModName 'Monorepo Mod' -Author 'Jeff' -ModType csharp -TemplateDir $TemplateDir -Monorepo $TempDir 2>$null
+        } finally {
+            Pop-Location
+        }
+
+        $ModDir = Join-Path $TempDir 'mods/MonorepoMod'
+    }
+    AfterAll {
+        Remove-Item $TempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'creates mod inside mods/ directory' {
+        Test-Path $ModDir | Should -Be $true
+    }
+
+    It 'has ModInfo.xml with correct name' {
+        [xml]$doc = Get-Content (Join-Path $ModDir 'ModInfo.xml')
+        $doc.ModInfo.displayName | Should -Be 'Monorepo Mod'
+    }
+
+    It 'has renamed .csproj' {
+        Test-Path (Join-Path $ModDir 'MonorepoMod.csproj') | Should -Be $true
+        Test-Path (Join-Path $ModDir 'MyMod.csproj') | Should -Be $false
+    }
+
+    It 'has Source/ with configured ModEntryPoint.cs' {
+        $cs = Get-Content (Join-Path $ModDir 'Source/ModEntryPoint.cs') -Raw
+        $cs | Should -Match 'namespace MonorepoMod'
+    }
+
+    It 'has Infos/ directory' {
+        Test-Path (Join-Path $ModDir 'Infos') | Should -Be $true
+    }
+
+    It 'has CLAUDE.md' {
+        Test-Path (Join-Path $ModDir 'CLAUDE.md') | Should -Be $true
+    }
+
+    It 'has per-mod .env with workshop and modio IDs' {
+        $env_content = Get-Content (Join-Path $ModDir '.env') -Raw
+        $env_content | Should -Match 'STEAM_WORKSHOP_ID'
+        $env_content | Should -Match 'MODIO_MOD_ID'
+    }
+
+    It 'does NOT have scripts/' {
+        Test-Path (Join-Path $ModDir 'scripts') | Should -Be $false
+    }
+
+    It 'does NOT have docs/' {
+        Test-Path (Join-Path $ModDir 'docs') | Should -Be $false
+    }
+
+    It 'does NOT have .env.example' {
+        Test-Path (Join-Path $ModDir '.env.example') | Should -Be $false
+    }
+
+    It 'does NOT have .gitignore' {
+        Test-Path (Join-Path $ModDir '.gitignore') | Should -Be $false
+    }
+}
+
+Describe 'create-mod.ps1 monorepo mode (XML-only)' {
+    BeforeAll {
+        $TempDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "createmod-mono-xml-$(Get-Random)"
+        New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $TempDir 'mods') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $TempDir 'scripts') -Force | Out-Null
+        New-Item -ItemType File -Path (Join-Path $TempDir 'scripts/helpers.ps1') -Force | Out-Null
+
+        Push-Location $TempDir
+        try {
+            & $PwshExe -NoProfile -File $CreateModScript -ModName 'XML Mono Mod' -Author '' -ModType xml -TemplateDir $TemplateDir -Monorepo $TempDir 2>$null
+        } finally {
+            Pop-Location
+        }
+
+        $ModDir = Join-Path $TempDir 'mods/XmlMonoMod'
+    }
+    AfterAll {
+        Remove-Item $TempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'creates mod inside mods/ directory' {
+        Test-Path $ModDir | Should -Be $true
+    }
+
+    It 'does NOT have .csproj' {
+        (Get-ChildItem -Path $ModDir -Filter '*.csproj').Count | Should -Be 0
+    }
+
+    It 'does NOT have Source/' {
+        Test-Path (Join-Path $ModDir 'Source') | Should -Be $false
+    }
+
+    It 'has Infos/' {
+        Test-Path (Join-Path $ModDir 'Infos') | Should -Be $true
+    }
+
+    It 'has CLAUDE.md' {
+        Test-Path (Join-Path $ModDir 'CLAUDE.md') | Should -Be $true
+    }
+}
+
 Describe 'create-mod.ps1 edge cases' {
     It 'fails when output directory already exists' {
         $TempDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "createmod-dup-$(Get-Random)"

@@ -128,6 +128,65 @@ jobs:
 
           echo "create-mod.sh C#: PASSED"
 
+      - name: Test create-mod.sh (monorepo, C#)
+        run: |
+          cd "$(mktemp -d)"
+          mkdir -p mods scripts
+          touch scripts/helpers.sh
+
+          MOD_NAME="Monorepo Mod" AUTHOR="CI Bot" MOD_TYPE=csharp \
+            TEMPLATE_DIR="$GITHUB_WORKSPACE/template" \
+            bash "$GITHUB_WORKSPACE/create-mod.sh" --monorepo .
+
+          # Verify created in mods/
+          test -d mods/MonorepoMod
+
+          # Verify mod-specific files exist
+          test -f mods/MonorepoMod/ModInfo.xml
+          test -f mods/MonorepoMod/MonorepoMod.csproj
+          test -d mods/MonorepoMod/Source
+          test -d mods/MonorepoMod/Infos
+          test -f mods/MonorepoMod/CLAUDE.md
+          test -f mods/MonorepoMod/.env
+          test -f mods/MonorepoMod/CHANGELOG.md
+          test -f mods/MonorepoMod/workshop.vdf
+          test -f mods/MonorepoMod/mod-description.html
+
+          # Verify shared infrastructure NOT present
+          test ! -d mods/MonorepoMod/scripts
+          test ! -d mods/MonorepoMod/docs
+          test ! -f mods/MonorepoMod/.env.example
+          test ! -f mods/MonorepoMod/.gitignore
+          test ! -f mods/MonorepoMod/gitignore
+
+          # Verify per-mod .env has correct content
+          grep 'STEAM_WORKSHOP_ID' mods/MonorepoMod/.env
+          grep 'MODIO_MOD_ID' mods/MonorepoMod/.env
+
+          # Verify placeholder replacement still works
+          grep '<displayName>Monorepo Mod</displayName>' mods/MonorepoMod/ModInfo.xml
+
+          echo "create-mod.sh monorepo C#: PASSED"
+
+      - name: Test create-mod.sh (monorepo, XML-only)
+        run: |
+          cd "$(mktemp -d)"
+          mkdir -p mods scripts
+          touch scripts/helpers.sh
+
+          MOD_NAME="XML Monorepo Mod" AUTHOR="CI Bot" MOD_TYPE=xml \
+            TEMPLATE_DIR="$GITHUB_WORKSPACE/template" \
+            bash "$GITHUB_WORKSPACE/create-mod.sh" --monorepo .
+
+          test -d mods/XmlMonorepoMod
+          test ! -f mods/XmlMonorepoMod/MyMod.csproj
+          test ! -d mods/XmlMonorepoMod/Source
+          test -d mods/XmlMonorepoMod/Infos
+          test -f mods/XmlMonorepoMod/CLAUDE.md
+          test -f mods/XmlMonorepoMod/.env
+
+          echo "create-mod.sh monorepo XML: PASSED"
+
       - name: Test create-mod.sh rejects existing directory
         run: |
           cd "$(mktemp -d)"
