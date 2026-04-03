@@ -1,5 +1,18 @@
 # Old World Reference Changelog
 
+## 2026-04-03 Hotfix (v1.0.82975)
+
+1 file changed across Reference/Source, Reference/XML, and decompiled (HelpText only). Trade tooltip fix and Russian localization styling.
+
+### Bug Fixes
+
+- **Trade yield tooltips now show modified values** — `HelpText.cs` trade breakdown now calls `calculateModifiedTradeValue()` instead of displaying raw `miValue`, so tooltips correctly reflect diplomatic modifiers for both "trade to player" and "trade from player" lines
+
+### UI / Localization
+
+- **Title style moved to text system** — `buildTitleScope` changed from hardcoded `QUICKTEXTVAR("<style=H1>{LIST}</style>")` to `TEXTVAR_TYPE("TEXT_HELPTEXT_TITLE")`, allowing per-locale title styling
+- **Russian heading styles** — `TEXT_HELPTEXT_TITLE` and `TEXT_HELPTEXT_SUBTITLE` now use `H1_RU` / `H2_RU` styles for Russian locale (fixes Cyrillic text sizing in tooltips)
+
 ## 2026-03-25 Hotfix (v1.0.82832)
 
 18 files changed across Reference/Source, Reference/XML, and decompiled (bulk is decompiler variable renaming). Multiplayer networking fix.
