@@ -1,5 +1,160 @@
 # Old World Reference Changelog
 
+## 2026-04-08 Update (Update #145, v1.0.83082)
+
+233 files changed across Reference/Source, Reference/XML, and decompiled (+15,877 / -13,574 lines). Unit and tech tree rebalances, legitimacy conversion rework, rendering optimizations, AI improvements, and 50+ bug fixes.
+
+Official patch notes: https://mohawkgames.com/2026/04/08/old-world-update-145/
+
+### Gameplay
+
+- **Legitimacy conversion now has scaling cost** — new globals `CONVERT_LEGITIMACY_FLAT_COST` (2) and `CONVERT_LEGITIMACY_PER_100_COST` (100) define a base cost plus escalating cost per prior conversion. `miLegitimacyConvertCount` on Character tracks uses. Previously only required >0 legitimacy and no prior conversion that turn
+- **Trade value modifier capped** — new `MAX_TRADE_MODIFIER` global (90) caps trade income modifiers in both directions. `calculateModifiedTradeValue()` refactored: `getTradeValueModifier()` extracted as separate method, rounding mode changed
+- **Crossbowman strength reduced** from 80 to 60; **Polybolos strength reduced** from 100 to 80
+- **Slinger** now also obsoleted by Bodkin Arrow (previously only by Windlass)
+- **Mill split into Watermill + Windmill** — old `IMPROVEMENTCLASS_MILL` becomes `IMPROVEMENTCLASS_WATERMILL` (prereq: Hydraulics). New `IMPROVEMENTCLASS_WINDMILL` (prereq: Windlass) with adjacency bonuses from Mine, Quarry, Lumbermill (+100% each). Windlass now requires Coinage instead of Manor
+- **Specialist civics costs lowered** — Rancher, Trapper, Gardener, Fisher reduced from 60 to 40
+- **New specialist prerequisite system** — `meEffectCityPrereq` field allows specialists to require a specific EffectCity to be active in the city
+- **Besieger/Highlander/Engineer promotions** switched from whitelist (Melee+Ranged only) to blacklist (invalid for Mounted+Ship). Net effect: applicable to more unit types
+- **Water units cannot get road-building** — `effectUnitInfo.mbBuildRoad` now invalid for water units
+- **Judaism no longer requires Labor Force** tech to found
+- **Hinduism** now has a description tooltip
+- **Gatherer/Resourceful cognomens** (EOTI) threshold reduced from 400 to 300 harvested resources
+- **EFFECTCITY_MONARCHICAL_OWNERSHIP** (EOTI) rebalanced — Food penalty doubled (-40 → -80), Money bonus 10x'd (200 → 2000)
+- **Religion memory rebalanced** — MEMORYRELIGION_APPEASED_LOCAL_LEADERS changed from medium-duration medium-positive to short-duration high-positive
+- **Random city site number option removed** — `MAP_OPTION_CITY_SITE_NUMBER_RANDOM` removed from map options and "All Random" preset. Game of the Week no longer varies city site numbers
+
+#### Tech Tree — Bonus Unit/Courtier Rework
+
+Free unit and courtier techs shuffled and costs normalized to 300 (from 400–1000):
+
+- Free Court Soldier: Infantry Square → **Stirrups**
+- Free Longbowman: Manor → **Battle Line**
+- Free Horse Archer: Land Consolidation → **Composite Bow**
+- Free Court Merchant: Chain Drive → **Cartography**
+- Free Court Merchant: Fiscal Policy → **Manor**
+- Bodkin Arrow (main tech): prereq changed from Manor to **Coinage**
+
+#### Childbirth Rework
+
+- `canHaveChildren()` now accepts optional `pSpouse` parameter with twin support: if last child was born this turn AND the spouse is the father, birth is not blocked. Otherwise blocks if child born this turn or under age 1
+- Before auto-marrying, game checks if the character is already the target of a marriage mission (new `MARRIAGE_MISSIONCLASS` global)
+
+### Events
+
+- **8 new Kush religion events** — Dedication and Displeasure events for Amani, Apedemek, Mandulis, and Sebiumeker. Triggered by EVENTTRIGGER_RELIGION_SPREAD, repeat every 40 turns, Kush-specific
+- **EVENTSTORY_PLAYER_TRIBE_WAR** — now respects `bNoEventsValid` (won't fire if character has NoEvents)
+- **Trait occurrence timing fix** — `doOccurrenceTrait()` now called before extra XP processing instead of after, fixing traits intermittently not working
+- **Subject reign range fix** — special reign behavior now only applies when `miMinReign == miMaxReign` (exact reign match), not whenever both are non-zero
+- **Religion subject check** — `mbUnlockedReligion` now uses new `isUnlockedReligion()` method instead of `canAdoptReligion(bTestCost: false)`, separating availability from affordability
+- **Tournament announcement removed** (Community Tournament 2025 H2)
+
+#### EOTI DLC Events (Extensive Rebalancing)
+
+- New **EVENTLINK_TRADE_VENTURE** event link (20-turn time limit)
+- Shipwrecked Sailor: now gives TRAIT_EXPLORING (was TRAIT_TRADE_VENTURE), option 1 gives TRAIT_NATURALIST instead of TRAIT_EXPLORING. Weight 4 → 6
+- First Voyage: uses EVENTLINK_TRADE_VENTURE prereq instead of SUBJECT_PLAYER_MIN_DISTANT. Weight 3 → 10. Adds BONUS_CONTACT_S0
+- Exploring Lost: uses SUBJECT_EXPLORING (was SUBJECT_TRADE_VENTURE). Weight 2 → 5
+- Multiple events had weight increases (Study 1→10, Influence 1→10, New Perspectives 2→6, Cultural influence 6→8, etc.)
+- Several events had `bSinglePlayer` restrictions removed (allowing multiplayer)
+- Several events had event class assignments removed in favor of direct triggers
+
+### AI
+
+- **New city evaluation parameters** — `AI_CITY_REGROWTH_VALUE` (100), `AI_CITY_TRADE_VALUE` (100), `AI_CITY_AUTOBUILD_VALUE` (0) for effect city evaluation
+- **Culture advancement priority** — AI now gives +100% modifier to culture advancement if no city has yet reached the next culture level
+- **Wonder feasibility** — AI reduces wonder improvement value by 10x if it can't actually start building it
+- **Adjacent improvement team check** — yield calculation now checks team membership instead of player ownership, fixing valuation in team games
+- **Legitimacy value split** — `getLegitimacyValue()` gains `bIncludeYields` parameter to avoid double-counting yields in effect city evaluation
+- **Tribe unit role selection rewritten** — `pickRoleMoveTile()` now cycles through roles systematically (PILLAGE → ATTACK_UNIT → ATTACK_TARGET) with new `canHaveTribeRole()` method, replacing fixed if-else chain
+- **Ranged unit in-place attack** — when a unit has a target but no move tile, it now checks if it can attack from its current position
+- **Transport retreat priority** — transport units now get retreat value calculations
+- **AI religion improvement check** — city founding no longer auto-places religion improvements, using new `isReligionImprovement()` method
+
+### Bug Fixes
+
+- **ZOC visibility fix** — Zone of Control now properly checks `isVisible()` on adjacent tiles before considering enemy units. Previously could "see" units through fog of war for ZOC purposes
+- **Settlement defense logic fix** — changed `hasImprovementTribeSite()` to `isSettlement()` and inverted defender check logic (was allowing defense when it shouldn't and vice versa)
+- **Pathfinding direct-path optimization** — shortcut now works with multi-segment paths, iterating through all end-tile segments independently
+- **Unit selection cleanup on death** — tile highlights now dirtied when any unit dies with a different unit selected, fixing stale attack range highlights
+- **Occurrence per-player tracking** — tile changes now include `PlayerType` in key tuple, fixing effects for different players colliding
+- **Tile title display** — vegetation, city site, and clear-for-attack labels now accumulate with slashes instead of if/else-if showing only one
+- **Family first city naming** — naming logic moved before city name assignment, so `meFirstCityName` is used directly during initial naming instead of overwriting afterward
+- **Input processing timing** — hotkey/cheat key processing deferred to next update frame via `mbInputThisFrame` flag, preventing execution during inconsistent state
+- **Map overlay state management** — `meLastActiveOverlay` saved at overlay entry point; `clearTemporaryOverlay()` removed in favor of `setTemporaryOverlayToggle(NONE, false)`
+- **Road building overlay** — properly tracks tiles via `clientRoadIDs`, toggling off when re-selected instead of flickering
+- **Improvement tooltip null safety** — all `pTile`-dependent sections wrapped in null checks for tileless contexts (e.g., improvement pings)
+- **Unit replaced ID persistence** — new `miReplacedUnitID` tracks unit lineage across upgrades; serialized in save/load and network sync
+- **Player turn start visibility** — unit visibility now dirtied on renderer when `mbProcessingTurnStart` changes, fixing units appearing/disappearing during transitions
+- **Connected human starts fix** — start placement now also rejects tiles with `iLandArea == -1`
+- **MakeUrban validation** — refactored into `CanMakeUrban()` + `MakeUrban()`, returning false gracefully instead of asserting. Checks terrain/vegetation locks before placing
+- **Mountain visibility leak** — mountain asset variations now only apply when at least one tile in cluster is visible, preventing hidden mountain shape reveals
+- **Fog of war rendering** — destination meshes start inactive, activated only during rendering; removed animated-tile-queue cleanup that dropped frames; instant movement sets percentage directly
+- **StoryPreview null reference** — now checks `meRelationUs != NONE` before accessing `mbPlayerLuxury`
+- **TechTreePanel search** — filters out `mbReturn` techs, strips hyperlink formatting from names, empty search shows all results
+- **Unit upgrade visual doubling** — new `unitTempHidden` set prevents rendering both old and new unit during transitions via `ReplacedUnitID`
+- **Particle renderer filtering** — `GetRenderers()` excludes `ParticleSystemRenderer` to prevent particle effects from being affected by material operations
+- **Calamities occurrences now gated** — OCCURRENCE_EVAPORATE, OCCURRENCE_DESOLATION, OCCURRENCE_REMOVE_MOUNTAINS, and OCCURRENCE_REJUVENATE all require `CALAMITIES` content. OCCURRENCE_REJUVENATE now only targets bare terrain (new TERRAIN_TARGET_ARID_BARE and TERRAIN_TARGET_TEMPERATE_BARE)
+
+### UI
+
+- **Manual Bonus Placement player option** — new `PLAYEROPTION_MANUAL_BONUS_PLACEMENT` skips recommendation popup and goes straight to tile selection
+- **"Disable Idle Animations" option** — replaces the old quality-preset `animationLODEnabled`. New standalone toggle on `GraphicsOptionsSave`. Paused animations freeze at frame 0.5 (midpoint) for better appearance. `MinDetailObject` component removed, replaced by `"MinimumDetailOnly"` GPU culling layer
+- **Healthbar healing preview** — damage preview shows green when `damagePreview < 0` (healing) instead of generic darkened color
+- **Attack range highlight** — hovering a tile with a selected unit now shows actual attack splash/AOE tiles instead of a simple range circle
+- **Timeline tribe territory** — timeline and minimap now show tribe territory in addition to player territory. New `mapOwnerTribeHistory` on Tile
+- **Fog of war toggle API** — new `isShowMapFogOfWar`/`setShowMapFogOfWar`/`toggleShowMapFogOfWar` methods for programmatic fog of war control
+- **Occurrence tooltips expanded** — now show current duration, minimum duration, and escalating end chance (base + increment per turn)
+- **Tech culture prerequisite display** — tech tooltips now show `meCultureValid` requirement
+- **Culture unlocks tech display** — culture level help text now lists which techs become available at that level
+- **Tribe tile "Not City Site" indicator** — tiles with tribe improvements that aren't city sites show a note with map option link
+- **Character trait exclusions display** — trait tooltips now show `mabUnitTraitInvalid` (excluded unit traits) alongside included ones
+- **Cooldown text specificity** — recruit/hire/gift tooltips now specify which unit the cooldown applies to
+- **Map option help links** — new `HELP_MAP_OPTION` link type for clickable map option references
+- **Improvement ping tooltips** — new `IMPROVEMENT_PING` item type with own tooltip handling
+- **Decision description divider** — decisions now have a visual divider before the description
+- **Overlay customizer button images** — map overlay customizer buttons now get their icons set
+- **Order movement below yield preview** — movement orders now display below yield preview
+- **Game Editor rework** — changed from fixed-height panel to dynamic-height using PreferredSize, grid items to HGroup layout, scrollable panel with AutoHideAndExpand
+- **Barbarian widget** — added stencil image layer, changed materials, added SortOrder=1
+- **'Exploring' trait renamed to 'Travelling Afar'** — TRAIT_EXPLORING and TRAIT_TRAVELLING_AFAR consolidated (Exploring ID kept, Travelling Afar display name)
+- **Mirror Map option disabled** on Desolation and Ebbing Sea map scripts
+- **DLC title capitalization standardized** — lowercase articles in "Heroes of the Aegean", "The Sacred and the Profane", etc.
+- **Caravan helptext** — now explains how to get caravans
+- **Critical Hits helptext** — clarifies damage to units only, cities immune, explains pending critical hits option
+- **Flanking helptext** — added: "The attacker does not receive any counterattack damage when performing a Flanking attack."
+- **Culture event text** — changed "Culture Level in City" to "Culture Level achieved in City"
+- **Gender-neutral memory text** — "fleeing wife" → "fleeing spouse"
+- **World Religion concept** — edited to include Buddhism
+- **Vassalize Tribe mission** — added description
+
+### Multiplayer
+
+- **"Rehost" feature restored** (reworked) — `IsMatchUnlisted` property and `RestartServer()` re-added to `IApplication` after removal in v1.0.82832. Menu option appears when match is unlisted. `REHOST` ItemType enum re-added
+- **Network match staleness** — new time-based system: `networkGameStaleSeconds` (3600s), `networkGameUpdateSeconds` (30s). Server info updated if older than 30s or if match data changed. `ServerStruct` gains `lastDate` field
+- **Match verification cleanup** — removed `restart` parameter from `UpdateMatchServer()` and the old `RestartServer()` fallback
+
+### Rendering
+
+- **Aqueduct rendering overhaul** — tracks construction progress, lightweight height-dirty system replaces full `ForceUpdateAll`, spline replacement via `SetSplineAtIndex()`, deterministic path comparison via sorted children
+- **Border renderer optimization** — caches `mouseoverCityID` and `highlightedBorderGroup`, early-returns when unchanged
+- **Terrain quality consolidation** — new `TerrainRenderer.SetQuality()` method with `"MinimumDetailOnly"` culling layer replaces per-object `MinDetailObject` toggling
+- **Mountain tile effect** — restricted to specific tile instead of any matching-height visible tile
+- **Minimap layer consolidation** — `MinimapResources`, `MinimapIcons`, `MinimapBorders`, `TimelineFogOfWar`, `TimelineBorders` replaced by `"MinimapOnly"` and `"TimelineOnly"`
+- **Graphics options refactor** — `OnApplyOptions` callback now receives `GraphicsOptionsSave` instead of `GraphicsSettings`. `animationLODEnabled` removed from quality presets, replaced by `disableIdleAnimations` user toggle. `uiHealthbarScale` removed
+- **Loading graphics** — `ApplyOptions()` now called after loading completes, ensuring settings applied immediately
+- **Waypoint text** — canvas explicitly sets `sortingLayerName = "Default"` for correct rendering order
+
+### Map Scripts
+
+- **TileData encapsulation** — all fields converted from `public` to properties with `protected internal` backing (e.g., `meTerrain` → `Terrain`, `mbBoundary` → `Boundary`). Purely mechanical change affecting all ~20 map scripts
+
+### Other
+
+- **SystemCore IO** — new serialization for `DictionaryList<(T, U, V), string>` (triple-key dictionaries) for per-player occurrence tracking
+- **Spline node position setter** — new `SetNodePosition(int, Vector3)` for post-creation modification
+- **ScrollablePanel refactored** — now extends `UIScrollable` base class with `ResizeRect()` override and `ContentRectObserver`
+
 ## 2026-04-03 Hotfix (v1.0.82975)
 
 1 file changed across Reference/Source, Reference/XML, and decompiled (HelpText only). Trade tooltip fix and Russian localization styling.
