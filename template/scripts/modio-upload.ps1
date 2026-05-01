@@ -51,7 +51,7 @@ try {
 
     $GameBuild = Get-GameBuild
     if (-not $GameBuild) { exit 1 }
-    $Tags = Get-ModioTags -ModInfoPath 'ModInfo.xml'
+    $Tags = Get-ModioTag -ModInfoPath 'ModInfo.xml'
     Write-Host "Game build: $GameBuild"
     Write-Host "mod.io tags: $Tags"
 
@@ -179,7 +179,7 @@ try {
     if ($Tags) {
         Write-Host ""
         Write-Host "=== Setting tags ==="
-        $deleteResult = Invoke-ModioApi -Method 'DELETE' -Uri "$BaseUrl/mods/$ModId/tags" -Token $Token
+        [void](Invoke-ModioApi -Method 'DELETE' -Uri "$BaseUrl/mods/$ModId/tags" -Token $Token)
 
         $tagFields = @($Tags -split ',' | ForEach-Object { "tags[]=$_" })
         $tagResult = Invoke-ModioApi -Method 'POST' -Uri "$BaseUrl/mods/$ModId/tags" -Token $Token `

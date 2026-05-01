@@ -265,7 +265,7 @@ function Get-GameBuild {
     return $null
 }
 
-function Get-ModioTags {
+function Get-ModioTag {
     # Comma-separated mod.io tags. Auto-derives Singleplayer/Multiplayer from
     # ModInfo.xml flags, then appends $env:MODIO_TAGS from .env. Old World's
     # mod.io taxonomy (game 634):

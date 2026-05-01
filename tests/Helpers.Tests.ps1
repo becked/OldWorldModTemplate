@@ -91,7 +91,7 @@ Describe 'Set-XmlTagValue' {
     }
 }
 
-Describe 'Get-ModioTags' {
+Describe 'Get-ModioTag' {
     BeforeEach {
         $tempXml = Join-Path ([System.IO.Path]::GetTempPath()) "test-$(Get-Random).xml"
         [System.Environment]::SetEnvironmentVariable('MODIO_TAGS', $null, 'Process')
@@ -109,7 +109,7 @@ Describe 'Get-ModioTags' {
   <multiplayer>true</multiplayer>
 </ModInfo>
 "@ | Set-Content $tempXml
-        Get-ModioTags -ModInfoPath $tempXml | Should -Be 'Singleplayer,Multiplayer'
+        Get-ModioTag -ModInfoPath $tempXml | Should -Be 'Singleplayer,Multiplayer'
     }
 
     It 'omits Multiplayer when flag is false' {
@@ -120,7 +120,7 @@ Describe 'Get-ModioTags' {
   <multiplayer>false</multiplayer>
 </ModInfo>
 "@ | Set-Content $tempXml
-        Get-ModioTags -ModInfoPath $tempXml | Should -Be 'Singleplayer'
+        Get-ModioTag -ModInfoPath $tempXml | Should -Be 'Singleplayer'
     }
 
     It 'appends MODIO_TAGS env values' {
@@ -132,7 +132,7 @@ Describe 'Get-ModioTags' {
 </ModInfo>
 "@ | Set-Content $tempXml
         [System.Environment]::SetEnvironmentVariable('MODIO_TAGS', 'UI,Other', 'Process')
-        Get-ModioTags -ModInfoPath $tempXml | Should -Be 'Singleplayer,Multiplayer,UI,Other'
+        Get-ModioTag -ModInfoPath $tempXml | Should -Be 'Singleplayer,Multiplayer,UI,Other'
     }
 
     It 'trims whitespace from MODIO_TAGS entries' {
@@ -144,7 +144,7 @@ Describe 'Get-ModioTags' {
 </ModInfo>
 "@ | Set-Content $tempXml
         [System.Environment]::SetEnvironmentVariable('MODIO_TAGS', ' UI , Other ', 'Process')
-        Get-ModioTags -ModInfoPath $tempXml | Should -Be 'Singleplayer,UI,Other'
+        Get-ModioTag -ModInfoPath $tempXml | Should -Be 'Singleplayer,UI,Other'
     }
 }
 
