@@ -51,6 +51,10 @@ try {
     }
     Write-Host "Version: $Version"
 
+    $GameBuild = Get-GameBuild
+    if (-not $GameBuild) { exit 1 }
+    Write-Host "Game build: $GameBuild"
+
     # Changelog: use parameter if provided, otherwise extract from CHANGELOG.md
     if (-not $Changelog) {
         $Changelog = Get-ChangelogForVersion -Version $Version
@@ -70,6 +74,8 @@ try {
     New-Item -ItemType Directory -Path 'workshop_content' -Force | Out-Null
 
     Copy-Item 'ModInfo.xml' 'workshop_content\'
+    $WorkshopId = [System.Environment]::GetEnvironmentVariable('STEAM_WORKSHOP_ID', 'Process')
+    Set-ModInfoPlatform -FilePath 'workshop_content\ModInfo.xml' -Platform 'Workshop' -ModioId '' -WorkshopId $WorkshopId -Build $GameBuild | Out-Null
     if (Test-Path 'logo-512.png') { Copy-Item 'logo-512.png' 'workshop_content\' }
     Copy-Item -Path 'Infos' -Destination 'workshop_content\Infos' -Recurse
 

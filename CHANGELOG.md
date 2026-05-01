@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-04-30
+
+- Fix mod.io and Workshop uploads missing platform metadata that the in-game uploader writes (per Mohawk dev feedback)
+  - mod.io upload now sets `community_options=1` to enable comments
+  - mod.io upload now sets `metadata_blob` to `;;;<gameBuild>` so the mod browser stops showing the "out of date" warning
+  - mod.io upload now syncs tags from the new `MODIO_TAGS` env var, with `Singleplayer`/`Multiplayer` auto-derived from the `<singlePlayer>`/`<multiplayer>` flags. Tags are replaced unconditionally on each upload
+  - Both upload scripts now write `<modplatform>`, `<modioID>`/`<workshopFileID>`, and `<modbuild>` into the staged `ModInfo.xml` (source unchanged) so the runtime mod loader can detect updates and notify users
+- Add `template/scripts/helpers.sh` with `game_build`, `modio_tags`, and `write_modinfo_platform` (mirrored as `Get-GameBuild`, `Get-ModioTags`, `Set-ModInfoPlatform` in `helpers.ps1`)
+- Add `MODIO_TAGS` and optional `OLDWORLD_BUILD` to `.env.example`
+
 ## [0.4.0] - 2026-04-01
 
 - Add `--monorepo` flag to `create-mod.sh` and `-Monorepo` to `create-mod.ps1` for scaffolding mods inside an existing monorepo

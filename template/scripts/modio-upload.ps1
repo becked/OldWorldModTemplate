@@ -49,6 +49,12 @@ try {
 
     $ModId = [System.Environment]::GetEnvironmentVariable('MODIO_MOD_ID', 'Process')
 
+    $GameBuild = Get-GameBuild
+    if (-not $GameBuild) { exit 1 }
+    $Tags = Get-ModioTags -ModInfoPath 'ModInfo.xml'
+    Write-Host "Game build: $GameBuild"
+    Write-Host "mod.io tags: $Tags"
+
     # Validate mod content (run as subprocess so validate's exit doesn't terminate us)
     $psExe = (Get-Process -Id $PID).Path
     & $psExe -NoProfile -ExecutionPolicy Bypass -File "$ScriptDir\validate.ps1"
@@ -109,8 +115,10 @@ try {
         Write-Host "=== Creating new mod on mod.io ==="
 
         $fields = @{
-            'name'    = $ModName
-            'summary' = $ModSummary
+            'name'              = $ModName
+            'summary'           = $ModSummary
+            'community_options' = '1'
+            'metadata_blob'     = ";;;$GameBuild"
         }
         if ($Description) {
             $fields['description'] = $Description
@@ -143,8 +151,10 @@ try {
         Write-Host "=== Updating mod profile (text fields) ==="
 
         $fields = @{
-            'name'    = $ModName
-            'summary' = $ModSummary
+            'name'              = $ModName
+            'summary'           = $ModSummary
+            'community_options' = '1'
+            'metadata_blob'     = ";;;$GameBuild"
         }
         if ($Description) {
             $fields['description'] = $Description
@@ -162,6 +172,23 @@ try {
             } catch {
                 Write-Host $result.RawBody
             }
+        }
+    }
+
+    # Replace tags unconditionally — script is source of truth
+    if ($Tags) {
+        Write-Host ""
+        Write-Host "=== Setting tags ==="
+        $deleteResult = Invoke-ModioApi -Method 'DELETE' -Uri "$BaseUrl/mods/$ModId/tags" -Token $Token
+
+        $tagFields = @($Tags -split ',' | ForEach-Object { "tags[]=$_" })
+        $tagResult = Invoke-ModioApi -Method 'POST' -Uri "$BaseUrl/mods/$ModId/tags" -Token $Token `
+            -FormArrayFields $tagFields -UrlEncoded
+        if ($tagResult.StatusCode -eq 201 -or $tagResult.StatusCode -eq 200) {
+            Write-Host "Tags set: $Tags"
+        } else {
+            Write-Host "Warning: Tag update failed (HTTP $($tagResult.StatusCode))"
+            Write-Host $tagResult.RawBody
         }
     }
 
@@ -195,6 +222,7 @@ try {
     New-Item -ItemType Directory -Path 'modio_content' -Force | Out-Null
 
     Copy-Item 'ModInfo.xml' 'modio_content\'
+    Set-ModInfoPlatform -FilePath 'modio_content\ModInfo.xml' -Platform 'Modio' -ModioId $ModId -WorkshopId '' -Build $GameBuild | Out-Null
     if (Test-Path 'logo-512.png') { Copy-Item 'logo-512.png' 'modio_content\' }
     Copy-Item -Path 'Infos' -Destination 'modio_content\Infos' -Recurse
 
