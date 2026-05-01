@@ -216,6 +216,11 @@ Describe 'Get-GameBuild' {
     }
 
     It 'returns null and writes error when nothing is set' {
+        # Pester 5 sets $ErrorActionPreference = 'Stop' inside It blocks on
+        # Windows, which turns Write-Error into a terminating exception. Real
+        # callers run with 'Continue', so override here to exercise the same
+        # path: function emits to the error stream and returns $null.
+        $ErrorActionPreference = 'Continue'
         $result = Get-GameBuild 2>$null
         $result | Should -BeNullOrEmpty
     }
