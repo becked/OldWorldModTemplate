@@ -18,6 +18,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/helpers.sh"
 cd "$PROJECT_DIR"
 
 # Load .env
@@ -45,6 +46,11 @@ if [ -z "$MODIO_GAME_ID" ]; then
     echo "Error: MODIO_GAME_ID must be set in .env"
     exit 1
 fi
+
+GAME_BUILD=$(game_build) || exit 1
+TAGS=$(modio_tags ModInfo.xml)
+echo "Game build: $GAME_BUILD"
+echo "mod.io tags: $TAGS"
 
 # Parse flags
 DRY_RUN=false
@@ -130,6 +136,8 @@ if [ -z "$MODIO_MOD_ID" ]; then
         -H "Accept: application/json"
         --form-string "name=$MOD_NAME"
         --form-string "summary=$MOD_SUMMARY"
+        --form-string "community_options=1"
+        --form-string "metadata_blob=;;;$GAME_BUILD"
         -F "logo=@logo-512.png"
     )
     if [ -n "$DESCRIPTION" ]; then
@@ -164,6 +172,8 @@ else
 
     FORM_DATA="name=$(printf '%s' "$MOD_NAME" | jq -sRr @uri)"
     FORM_DATA+="&summary=$(printf '%s' "$MOD_SUMMARY" | jq -sRr @uri)"
+    FORM_DATA+="&community_options=1"
+    FORM_DATA+="&metadata_blob=$(printf '%s' ";;;$GAME_BUILD" | jq -sRr @uri)"
     if [ -n "$DESCRIPTION" ]; then
         FORM_DATA+="&description=$(printf '%s' "$DESCRIPTION" | jq -sRr @uri)"
     fi
@@ -182,6 +192,36 @@ else
         echo "Profile text fields updated successfully"
     else
         echo "Warning: Profile update failed (HTTP $HTTP_CODE)"
+        echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+    fi
+fi
+
+# Replace tags unconditionally — script is source of truth
+if [ -n "$TAGS" ]; then
+    echo ""
+    echo "=== Setting tags ==="
+    curl -sS -X DELETE "$MODIO_API_URL/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID/tags" \
+        -H "Authorization: Bearer $MODIO_ACCESS_TOKEN" >/dev/null
+
+    TAG_DATA=""
+    IFS=',' read -ra tag_arr <<< "$TAGS"
+    for t in "${tag_arr[@]}"; do
+        [ -n "$TAG_DATA" ] && TAG_DATA+="&"
+        TAG_DATA+="tags[]=$(printf '%s' "$t" | jq -sRr @uri)"
+    done
+
+    RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST \
+        "$MODIO_API_URL/games/$MODIO_GAME_ID/mods/$MODIO_MOD_ID/tags" \
+        -H "Authorization: Bearer $MODIO_ACCESS_TOKEN" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -H "Accept: application/json" \
+        -d "$TAG_DATA")
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ]; then
+        echo "Tags set: $TAGS"
+    else
+        BODY=$(echo "$RESPONSE" | sed '$d')
+        echo "Warning: Tag update failed (HTTP $HTTP_CODE)"
         echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
     fi
 fi
@@ -217,6 +257,7 @@ rm -rf modio_content modio_upload.zip
 mkdir -p modio_content
 
 cp ModInfo.xml modio_content/
+write_modinfo_platform modio_content/ModInfo.xml "Modio" "$MODIO_MOD_ID" "" "$GAME_BUILD"
 [ -f logo-512.png ] && cp logo-512.png modio_content/
 cp -r Infos modio_content/
 

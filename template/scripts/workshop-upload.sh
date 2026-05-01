@@ -19,6 +19,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/helpers.sh"
 cd "$PROJECT_DIR"
 
 # Load .env
@@ -59,6 +60,9 @@ if [ -z "$VERSION" ]; then
 fi
 echo "Version: $VERSION"
 
+GAME_BUILD=$(game_build) || exit 1
+echo "Game build: $GAME_BUILD"
+
 # Changelog: use argument if provided, otherwise extract from CHANGELOG.md
 CHANGELOG="${1:-}"
 if [ -z "$CHANGELOG" ] && [ -f "CHANGELOG.md" ]; then
@@ -88,6 +92,7 @@ rm -rf workshop_content
 mkdir -p workshop_content
 
 cp ModInfo.xml workshop_content/
+write_modinfo_platform workshop_content/ModInfo.xml "Workshop" "" "${STEAM_WORKSHOP_ID:-}" "$GAME_BUILD"
 [ -f logo-512.png ] && cp logo-512.png workshop_content/
 cp -r Infos workshop_content/
 
