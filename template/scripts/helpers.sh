@@ -56,37 +56,20 @@ modio_tags() {
 # so safe on copies that may have inherited stale fields.
 write_modinfo_platform() {
     local file="$1" platform="$2" modio_id="$3" workshop_id="$4" build="$5"
-    # Use -i.bak with empty extension via two-arg form for cross-platform sed
-    # (BSD sed requires an extension arg; GNU accepts either).
-    if sed --version >/dev/null 2>&1; then
-        # GNU sed
-        sed -i \
-            -e '/<modplatform>/d' \
-            -e '/<modioID>/d' \
-            -e '/<modioFileID>/d' \
-            -e '/<workshopOwnerID>/d' \
-            -e '/<workshopFileID>/d' \
-            -e '/<modbuild>/d' \
-            "$file"
-    else
-        # BSD sed (macOS)
-        sed -i '' \
-            -e '/<modplatform>/d' \
-            -e '/<modioID>/d' \
-            -e '/<modioFileID>/d' \
-            -e '/<workshopOwnerID>/d' \
-            -e '/<workshopFileID>/d' \
-            -e '/<modbuild>/d' \
-            "$file"
-    fi
+    local nl=$'\n'
     local insert=""
-    [ -n "$platform" ]    && insert+="  <modplatform>$platform</modplatform>\n"
-    [ -n "$modio_id" ]    && insert+="  <modioID>$modio_id</modioID>\n  <modioFileID>0</modioFileID>\n"
-    [ -n "$workshop_id" ] && insert+="  <workshopFileID>$workshop_id</workshopFileID>\n"
-    [ -n "$build" ]       && insert+="  <modbuild>$build</modbuild>\n"
-    if sed --version >/dev/null 2>&1; then
-        sed -i "s|</ModInfo>|${insert}</ModInfo>|" "$file"
-    else
-        sed -i '' "s|</ModInfo>|${insert}</ModInfo>|" "$file"
-    fi
+    [ -n "$platform" ]    && insert+="  <modplatform>$platform</modplatform>$nl"
+    [ -n "$modio_id" ]    && insert+="  <modioID>$modio_id</modioID>$nl  <modioFileID>0</modioFileID>$nl"
+    [ -n "$workshop_id" ] && insert+="  <workshopFileID>$workshop_id</workshopFileID>$nl"
+    [ -n "$build" ]       && insert+="  <modbuild>$build</modbuild>$nl"
+
+    # awk avoids BSD-vs-GNU sed divergence around \n in s/// replacements,
+    # which previously emitted a literal "n" between tags on macOS. The
+    # multi-line insert is passed via the environment because BSD awk rejects
+    # embedded newlines in -v assignments.
+    INSERT_VAL="$insert" awk '
+        /<modplatform>|<modioID>|<modioFileID>|<workshopOwnerID>|<workshopFileID>|<modbuild>/ { next }
+        /<\/ModInfo>/ { printf "%s", ENVIRON["INSERT_VAL"] }
+        { print }
+    ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
 }

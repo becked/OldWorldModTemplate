@@ -58,6 +58,48 @@ jobs:
         run: ./scripts/validate.sh
         working-directory: template
 
+      - name: Test write_modinfo_platform
+        run: |
+          cd "$(mktemp -d)"
+          cat > ModInfo.xml <<'EOF'
+          <?xml version="1.0"?>
+          <ModInfo>
+            <displayName>Test</displayName>
+            <author>tester</author>
+            <modversion>1.0</modversion>
+            <singlePlayer>true</singlePlayer>
+            <multiplayer>false</multiplayer>
+          </ModInfo>
+          EOF
+
+          source "$GITHUB_WORKSPACE/template/scripts/helpers.sh"
+          write_modinfo_platform ModInfo.xml "Modio" "12345" "" "1.0.83082"
+
+          # Each platform tag must be on its own line (regression for the
+          # BSD-sed \n-as-literal-"n" bug that put all tags on one line).
+          grep -q '^  <modplatform>Modio</modplatform>$' ModInfo.xml
+          grep -q '^  <modioID>12345</modioID>$' ModInfo.xml
+          grep -q '^  <modioFileID>0</modioFileID>$' ModInfo.xml
+          grep -q '^  <modbuild>1.0.83082</modbuild>$' ModInfo.xml
+          ! grep -q '<workshopFileID>' ModInfo.xml
+
+          xmllint --noout ModInfo.xml
+
+          # Idempotent: re-running keeps exactly one of each tag.
+          write_modinfo_platform ModInfo.xml "Modio" "12345" "" "1.0.83082"
+          test "$(grep -c '<modplatform>' ModInfo.xml)" = "1"
+          test "$(grep -c '<modioID>' ModInfo.xml)" = "1"
+          test "$(grep -c '<modbuild>' ModInfo.xml)" = "1"
+
+          # Workshop variant
+          write_modinfo_platform ModInfo.xml "Workshop" "" "999888" "1.0.83082"
+          grep -q '^  <modplatform>Workshop</modplatform>$' ModInfo.xml
+          grep -q '^  <workshopFileID>999888</workshopFileID>$' ModInfo.xml
+          ! grep -q '<modioID>' ModInfo.xml
+          xmllint --noout ModInfo.xml
+
+          echo "write_modinfo_platform: PASSED"
+
       - name: Test bump-version.sh
         run: |
           ./scripts/bump-version.sh patch

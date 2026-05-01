@@ -200,6 +200,60 @@ Describe 'Set-ModInfoPlatform' {
     }
 }
 
+Describe 'Get-GameBuild' {
+    BeforeEach {
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_BUILD', $null, 'Process')
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_PATH', $null, 'Process')
+    }
+    AfterEach {
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_BUILD', $null, 'Process')
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_PATH', $null, 'Process')
+    }
+
+    It 'returns OLDWORLD_BUILD override when set' {
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_BUILD', '1.2.3', 'Process')
+        Get-GameBuild | Should -Be '1.2.3'
+    }
+
+    It 'returns null and writes error when nothing is set' {
+        $result = Get-GameBuild 2>$null
+        $result | Should -BeNullOrEmpty
+    }
+
+    It 'strips trailing ".0" from 4-part Windows FileVersion' {
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_PATH', '/fake/oldworld', 'Process')
+        Mock Test-Path { $Path -like '*OldWorld.exe' }
+        Mock Get-Item {
+            [PSCustomObject]@{
+                VersionInfo = [PSCustomObject]@{ FileVersion = '1.0.83082.0' }
+            }
+        }
+        Get-GameBuild | Should -Be '1.0.83082'
+    }
+
+    It 'preserves 3-part FileVersion unchanged' {
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_PATH', '/fake/oldworld', 'Process')
+        Mock Test-Path { $Path -like '*OldWorld.exe' }
+        Mock Get-Item {
+            [PSCustomObject]@{
+                VersionInfo = [PSCustomObject]@{ FileVersion = '1.0.83082' }
+            }
+        }
+        Get-GameBuild | Should -Be '1.0.83082'
+    }
+
+    It 'preserves 4-part FileVersion when 4th component is non-zero' {
+        [System.Environment]::SetEnvironmentVariable('OLDWORLD_PATH', '/fake/oldworld', 'Process')
+        Mock Test-Path { $Path -like '*OldWorld.exe' }
+        Mock Get-Item {
+            [PSCustomObject]@{
+                VersionInfo = [PSCustomObject]@{ FileVersion = '1.0.83082.5' }
+            }
+        }
+        Get-GameBuild | Should -Be '1.0.83082.5'
+    }
+}
+
 Describe 'Get-ChangelogForVersion' {
     It 'extracts correct section for version 1.0.0' {
         $result = Get-ChangelogForVersion -Version '1.0.0' -ChangelogPath "$FixturesDir/CHANGELOG.md"

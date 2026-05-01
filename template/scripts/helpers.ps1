@@ -243,26 +243,34 @@ function Get-GameBuild {
         return $null
     }
 
+    $raw = $null
     $exe = Join-Path $owPath 'OldWorld.exe'
     if (Test-Path $exe) {
         $info = (Get-Item $exe).VersionInfo
-        if ($info.FileVersion) {
-            # FileVersion may be "1.0.83082.0" — strip trailing ".0" if present
-            return ($info.FileVersion -split '\s')[0]
+        if ($info.FileVersion) { $raw = $info.FileVersion }
+    }
+    if (-not $raw) {
+        $plist = Join-Path $owPath 'OldWorld.app/Contents/Info.plist'
+        if (Test-Path $plist) {
+            [xml]$doc = Get-Content $plist
+            $node = $doc.SelectNodes("//key[. = 'CFBundleShortVersionString']/following-sibling::string[1]")
+            if ($node.Count -gt 0) { $raw = $node[0].InnerText }
         }
     }
-
-    $plist = Join-Path $owPath 'OldWorld.app/Contents/Info.plist'
-    if (Test-Path $plist) {
-        [xml]$doc = Get-Content $plist
-        $node = $doc.SelectNodes("//key[. = 'CFBundleShortVersionString']/following-sibling::string[1]")
-        if ($node.Count -gt 0) {
-            return ($node[0].InnerText -split '\s')[0]
-        }
+    if (-not $raw) {
+        Write-Error "Cannot determine game build. Set OLDWORLD_BUILD in .env."
+        return $null
     }
 
-    Write-Error "Cannot determine game build. Set OLDWORLD_BUILD in .env."
-    return $null
+    # Windows FileVersionInfo reports a 4-part version like "1.0.83082.0".
+    # Drop a trailing ".0" so the result matches the 3-part build the game
+    # stores in ModInfo.xml and uses for mod.io metadata_blob.
+    $bare = ($raw -split '\s')[0]
+    $parts = $bare -split '\.'
+    if ($parts.Count -ge 4 -and $parts[3] -eq '0') {
+        return ($parts[0..2] -join '.')
+    }
+    return $bare
 }
 
 function Get-ModioTag {
