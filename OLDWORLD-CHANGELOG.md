@@ -1,5 +1,22 @@
 # Old World Reference Changelog
 
+## 2026-05-14 Hotfix (v1.0.83591)
+
+2 files changed in `Reference/Source` plus 1 decompiled `Assembly-CSharp` file. Per the developer notes: fixes bugs that could cause game hangs, plus AI performance optimizations. (Dev notes call out "v1.0.82591" but the shipped asset bundle reports `1.0.83591` — using the bundle value.)
+
+### Multiplayer
+
+- **Network read error no longer resets client connection** — `GameClientBehaviour.cs` client network read loop (two sites): on a network-read `Exception`, was calling `APP?.DefaultNetwork?.ResetClientNetwork(clearGame: false)`, which tore down the transport layer and could leave the game hung (server still thinks the client is connected, client has dropped). Now calls `SendClientGameReadyToServer()` — re-signals readiness to the server without nuking the connection so the server can resend init data. Assembly-CSharp only (no Reference/Source counterpart)
+
+### AI
+
+- **Improvement adjacency valuation fixed** — `PlayerAI.calculateImprovementValueForTile` (~line 11353): in the per-yield / per-adjacent-improvement inner loop, the `iAdjacentValue +=` term using `getYieldToAdjacent(eLoopYield, eLoopImprovement, eImprovement, pTile.getResource())` × `cityYieldValue(_, pCity)` was being applied unconditionally — even when `pAdjacentCity.getTeam() != Team`. Moved inside the team check. A separate inside-if term that used the reversed-argument call against `pAdjacentCity` is dropped entirely. Adds a `iYieldToAdjacent != 0` early-out around the multiply. Net effect: the AI no longer credits itself yield-to-adjacent value when the neighbouring tile sits in foreign- or un-team territory
+- **Project effect-city evaluation reorders for perf** — `PlayerAI.calculateEffectCityValue` (~line 14659): predicate order was `pCity.canBuildProject(...)` → `meEffectCityPrereq == eEffectCity` → `!mbHidden` → `isTechAcquired`. Reordered so the cheap field/method checks run first and the expensive `canBuildProject` runs last. Same body, no behaviour change
+
+### UI
+
+- **Improvement ping tooltip uses central helper** — `Player.updatePings` (line 21925): swapped the sentinel comparison `zPing.meImprovement == infos().improvementsNum()` for `infos().Helpers.isActualImprovementPing(zPing.meImprovement)` (and inverted the ternary branches to match). Aligns this site with the ~12 other call sites already using the helper
+
 ## 2026-05-06 Update (Update #146, v1.0.83499)
 
 XML, Reference/Source C#, and decompiled changes across 65 XML files (304 modified, 261 added, 62 removed records) and ~74 decompiled C#/source files. Highlights: a new in-game **Map Search** UI, fog-of-war-aware combat math (visibility-team plumbed through every attack/defend/ZOC call), tribute hostility cooldown, an out-of-game tech-tree browser, an EOTI "Testing the Treaty" event split, market/tech rebalances, AI succession rework, and a sweep of rendering/perf/null-safety fixes.
