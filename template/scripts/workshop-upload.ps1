@@ -75,7 +75,13 @@ try {
 
     Copy-Item 'ModInfo.xml' 'workshop_content\'
     $WorkshopId = [System.Environment]::GetEnvironmentVariable('STEAM_WORKSHOP_ID', 'Process')
-    Set-ModInfoPlatform -FilePath 'workshop_content\ModInfo.xml' -Platform 'Workshop' -ModioId '' -WorkshopId $WorkshopId -Build $GameBuild | Out-Null
+    $OwnerId = [System.Environment]::GetEnvironmentVariable('STEAM_OWNER_ID', 'Process')
+    if (-not $OwnerId) {
+        Write-Host "Warning: STEAM_OWNER_ID not set in .env - the uploaded ModInfo.xml will lack"
+        Write-Host "<workshopOwnerID>, letting anyone re-upload this mod as their own. Your"
+        Write-Host "SteamID64 is the number in your profile URL (steamcommunity.com/profiles/...)."
+    }
+    Set-ModInfoPlatform -FilePath 'workshop_content\ModInfo.xml' -Platform 'Workshop' -ModioId '' -WorkshopId $WorkshopId -Build $GameBuild -OwnerId $OwnerId | Out-Null
     if (Test-Path 'logo-512.png') { Copy-Item 'logo-512.png' 'workshop_content\' }
     Copy-Item -Path 'Infos' -Destination 'workshop_content\Infos' -Recurse
 
@@ -179,8 +185,10 @@ try {
     Write-Host ""
     Write-Host "=== Upload complete ==="
     Write-Host ""
-    Write-Host "If this was a new upload, note the 'publishedfileid' from the output above."
-    Write-Host "Add it to your .env file as STEAM_WORKSHOP_ID for future updates."
+    Write-Host "If this was a new upload, note the 'publishedfileid' from the output above:"
+    Write-Host "  1. Add it to your .env file as STEAM_WORKSHOP_ID"
+    Write-Host "  2. Re-upload so the published ModInfo.xml carries the full ownership block"
+    Write-Host "     (workshopOwnerID + workshopFileID block others from re-uploading your mod)"
 } finally {
     Pop-Location
 }

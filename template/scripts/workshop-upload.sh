@@ -92,7 +92,12 @@ rm -rf workshop_content
 mkdir -p workshop_content
 
 cp ModInfo.xml workshop_content/
-write_modinfo_platform workshop_content/ModInfo.xml "Workshop" "" "${STEAM_WORKSHOP_ID:-}" "$GAME_BUILD"
+if [ -z "${STEAM_OWNER_ID:-}" ]; then
+    echo "Warning: STEAM_OWNER_ID not set in .env — the uploaded ModInfo.xml will lack"
+    echo "<workshopOwnerID>, letting anyone re-upload this mod as their own. Your"
+    echo "SteamID64 is the number in your profile URL (steamcommunity.com/profiles/...)."
+fi
+write_modinfo_platform workshop_content/ModInfo.xml "Workshop" "" "${STEAM_WORKSHOP_ID:-}" "$GAME_BUILD" "${STEAM_OWNER_ID:-}"
 [ -f logo-512.png ] && cp logo-512.png workshop_content/
 cp -r Infos workshop_content/
 
@@ -205,5 +210,7 @@ rm -f workshop_upload.vdf
 echo ""
 echo "=== Upload complete ==="
 echo ""
-echo "If this was a new upload, note the 'publishedfileid' from the output above."
-echo "Add it to your .env file as STEAM_WORKSHOP_ID for future updates."
+echo "If this was a new upload, note the 'publishedfileid' from the output above:"
+echo "  1. Add it to your .env file as STEAM_WORKSHOP_ID"
+echo "  2. Re-upload so the published ModInfo.xml carries the full ownership block"
+echo "     (workshopOwnerID + workshopFileID block others from re-uploading your mod)"

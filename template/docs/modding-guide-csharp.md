@@ -158,6 +158,11 @@ Every mod needs a `ModInfo.xml` manifest:
   <description>Description of what your mod does.</description>
   <modpicture>MyMod.png</modpicture>
   <author>YourName</author>
+  <modplatform>Modio</modplatform>
+  <modioID>0</modioID>
+  <modioFileID>0</modioFileID>
+  <workshopOwnerID />
+  <workshopFileID />
   <modversion>1.0.0</modversion>
   <modbuild>1.0.81098</modbuild>
   <tags>GameInfo</tags>
@@ -182,11 +187,24 @@ Every mod needs a `ModInfo.xml` manifest:
 | `modpicture` | Image file shown in Mod Manager (place in mod folder) |
 | `modversion` | Semantic version (e.g., 1.0.0) |
 | `modbuild` | Game version this was built for |
+| `modplatform` | Last platform the mod was uploaded to (`Workshop` or `Modio`) |
+| `modioID` | mod.io mod ID (0 until first mod.io upload) |
+| `workshopOwnerID` | Uploader's SteamID64 — the in-game mod browser blocks anyone else from re-uploading a mod that carries this |
+| `workshopFileID` | Steam Workshop item ID (empty until first Workshop upload) |
 | `tags` | Category: GameInfo, Character, Map, etc. |
 | `singlePlayer` | Enable for single-player games |
 | `multiplayer` | Enable for multiplayer (requires careful design) |
 | `scenario` | Set to `true` for scenario mods |
 | `blocksMods` | If true, prevents other mods from loading |
+
+The ownership fields (`modplatform` through `workshopFileID`) are stamped into
+the uploaded copy automatically by the upload scripts from `.env`
+(`STEAM_OWNER_ID`, `STEAM_WORKSHOP_ID`, `MODIO_MOD_ID`) — leave them as
+placeholders in your source file. Without `workshopOwnerID` in the published
+`ModInfo.xml`, anyone can re-upload your mod through the in-game mod browser
+under their own account. Keep `workshopFileID` empty until Steam assigns an ID
+on your first upload — a non-empty value makes the in-game uploader treat the
+mod as an update to that Workshop item.
 
 ---
 

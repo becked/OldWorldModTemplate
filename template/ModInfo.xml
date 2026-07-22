@@ -4,7 +4,19 @@
   <description>A brief description of your mod.</description>
   <modpicture>logo-512.png</modpicture>
   <author>Your Name</author>
+  <!-- Ownership block: stamped into the uploaded copy automatically by the
+       upload scripts from .env (STEAM_OWNER_ID, STEAM_WORKSHOP_ID,
+       MODIO_MOD_ID). workshopOwnerID is what stops other people re-uploading
+       your mod through the in-game mod browser. Leave workshopOwnerID and
+       workshopFileID empty here — a non-empty workshopFileID makes the
+       in-game uploader treat the mod as an update to that Workshop item. -->
+  <modplatform>Modio</modplatform>
+  <modioID>0</modioID>
+  <modioFileID>0</modioFileID>
+  <workshopOwnerID />
+  <workshopFileID />
   <modversion>0.1.0</modversion>
+  <modbuild>0</modbuild>
   <tags>Gameplay</tags>
   <singlePlayer>true</singlePlayer>
   <multiplayer>true</multiplayer>

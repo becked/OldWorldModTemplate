@@ -303,13 +303,16 @@ function Set-ModInfoPlatform {
     # can detect updates. Pass empty string for fields that don't apply (e.g.
     # WorkshopId='' on a mod.io upload). Idempotent — strips existing platform
     # tags first, so safe on copies that may have inherited stale fields.
+    # OwnerId is your SteamID64; the in-game mod browser uses <workshopOwnerID>
+    # to block anyone else from re-uploading the mod under their own account.
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$FilePath,
         [string]$Platform,
         [string]$ModioId,
         [string]$WorkshopId,
-        [string]$Build
+        [string]$Build,
+        [string]$OwnerId
     )
     if (-not (Test-Path $FilePath)) { return $false }
     if (-not $PSCmdlet.ShouldProcess($FilePath, "Inject platform=$Platform build=$Build")) { return $true }
@@ -327,6 +330,7 @@ function Set-ModInfoPlatform {
     }
     if ($Platform)   { Add-Element 'modplatform' $Platform }
     if ($ModioId)    { Add-Element 'modioID' $ModioId; Add-Element 'modioFileID' '0' }
+    if ($OwnerId)    { Add-Element 'workshopOwnerID' $OwnerId }
     if ($WorkshopId) { Add-Element 'workshopFileID' $WorkshopId }
     if ($Build)      { Add-Element 'modbuild' $Build }
     $doc.Save((Resolve-Path $FilePath).Path)

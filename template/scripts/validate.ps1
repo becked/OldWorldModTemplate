@@ -6,6 +6,8 @@
 #   - All XML files in Infos/ are well-formed
 #   - ModInfo.xml is well-formed and has a <modversion> tag
 #   - ModInfo.xml <description> is 250 characters or fewer (mod.io limit)
+#   - Published mods (.env has platform IDs) have STEAM_OWNER_ID set so uploads
+#     carry <workshopOwnerID>, which blocks others from re-uploading the mod
 #
 # Usage: .\scripts\validate.ps1 [-ProjectDir path]
 # Exit code: 0 on success, 1 on failure
@@ -83,6 +85,22 @@ if (-not (Test-Path 'Infos' -PathType Container)) {
             [Console]::Error.WriteLine("  `$bom = [byte[]](0xEF,0xBB,0xBF); `$content = [System.IO.File]::ReadAllBytes('$($textFile.Name)'); [System.IO.File]::WriteAllBytes('$($textFile.Name)', `$bom + `$content)")
             $Errors++
         }
+    }
+}
+
+# Published mods must have STEAM_OWNER_ID so the upload scripts can stamp
+# <workshopOwnerID> into the uploaded ModInfo.xml - without it anyone can
+# re-upload the mod through the in-game mod browser under their own account
+if (Test-Path '.env') {
+    $envVals = @{}
+    foreach ($line in Get-Content '.env') {
+        if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"?([^"]*)"?\s*$') {
+            $envVals[$Matches[1]] = $Matches[2].Trim()
+        }
+    }
+    if (($envVals['STEAM_WORKSHOP_ID'] -or $envVals['MODIO_MOD_ID']) -and -not $envVals['STEAM_OWNER_ID']) {
+        [Console]::Error.WriteLine("FAIL: .env sets STEAM_WORKSHOP_ID/MODIO_MOD_ID but not STEAM_OWNER_ID (your SteamID64 - see .env.example)")
+        $Errors++
     }
 }
 

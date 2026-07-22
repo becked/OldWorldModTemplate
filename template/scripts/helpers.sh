@@ -49,17 +49,20 @@ modio_tags() {
     (IFS=,; echo "${tags[*]:-}")
 }
 
-# write_modinfo_platform <staged_modinfo> <platform> <modio_id> <workshop_id> <build>
+# write_modinfo_platform <staged_modinfo> <platform> <modio_id> <workshop_id> <build> [owner_id]
 # Inject platform fields into a staged ModInfo.xml so the runtime mod loader
 # can detect updates. Pass "" for fields that don't apply (e.g. workshop_id=""
 # on a mod.io upload). Idempotent — strips any existing platform tags first,
 # so safe on copies that may have inherited stale fields.
+# owner_id is your SteamID64; the in-game mod browser uses <workshopOwnerID>
+# to block anyone else from re-uploading the mod under their own account.
 write_modinfo_platform() {
-    local file="$1" platform="$2" modio_id="$3" workshop_id="$4" build="$5"
+    local file="$1" platform="$2" modio_id="$3" workshop_id="$4" build="$5" owner_id="${6:-}"
     local nl=$'\n'
     local insert=""
     [ -n "$platform" ]    && insert+="  <modplatform>$platform</modplatform>$nl"
     [ -n "$modio_id" ]    && insert+="  <modioID>$modio_id</modioID>$nl  <modioFileID>0</modioFileID>$nl"
+    [ -n "$owner_id" ]    && insert+="  <workshopOwnerID>$owner_id</workshopOwnerID>$nl"
     [ -n "$workshop_id" ] && insert+="  <workshopFileID>$workshop_id</workshopFileID>$nl"
     [ -n "$build" ]       && insert+="  <modbuild>$build</modbuild>$nl"
 
@@ -67,8 +70,10 @@ write_modinfo_platform() {
     # which previously emitted a literal "n" between tags on macOS. The
     # multi-line insert is passed via the environment because BSD awk rejects
     # embedded newlines in -v assignments.
+    # [ >\/] after the tag name matches open tags (<tag>) and self-closing
+    # placeholders (<tag /> or <tag/>) that the ModInfo.xml template ships
     INSERT_VAL="$insert" awk '
-        /<modplatform>|<modioID>|<modioFileID>|<workshopOwnerID>|<workshopFileID>|<modbuild>/ { next }
+        /<(modplatform|modioID|modioFileID|workshopOwnerID|workshopFileID|modbuild)[ >\/]/ { next }
         /<\/ModInfo>/ { printf "%s", ENVIRON["INSERT_VAL"] }
         { print }
     ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"

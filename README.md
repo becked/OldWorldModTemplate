@@ -71,6 +71,10 @@ YourModName/
    ./scripts/workshop-upload.sh   # Steam Workshop
    ./scripts/modio-upload.sh      # mod.io
    ```
+   Before your first upload, set `STEAM_OWNER_ID` (your SteamID64) in `.env` —
+   the upload scripts stamp it into the published `ModInfo.xml` as
+   `<workshopOwnerID>`, which prevents anyone else from re-uploading your mod
+   through the in-game mod browser.
 
 See `docs/modding-guide-xml.md` in your generated project for an XML modding guide, or `docs/modding-guide-csharp.md` for C# / Harmony patching.
 

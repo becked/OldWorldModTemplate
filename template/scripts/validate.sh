@@ -6,6 +6,8 @@
 #   - All XML files in Infos/ are well-formed
 #   - ModInfo.xml is well-formed and has a <modversion> tag
 #   - ModInfo.xml <description> is 250 characters or fewer (mod.io limit)
+#   - Published mods (.env has platform IDs) have STEAM_OWNER_ID set so uploads
+#     carry <workshopOwnerID>, which blocks others from re-uploading the mod
 #
 # Usage: ./scripts/validate.sh
 # Exit code: 0 on success, 1 on failure
@@ -39,6 +41,20 @@ else
     SUMMARY_LEN=${#SUMMARY}
     if [ "$SUMMARY_LEN" -gt 250 ]; then
         echo "FAIL: ModInfo.xml <description> is $SUMMARY_LEN characters (mod.io limit is 250)" >&2
+        ERRORS=$((ERRORS + 1))
+    fi
+fi
+
+# Published mods must have STEAM_OWNER_ID so the upload scripts can stamp
+# <workshopOwnerID> into the uploaded ModInfo.xml — without it anyone can
+# re-upload the mod through the in-game mod browser under their own account
+if [ -f ".env" ]; then
+    STEAM_OWNER_ID=""
+    STEAM_WORKSHOP_ID=""
+    MODIO_MOD_ID=""
+    source ".env"
+    if { [ -n "$STEAM_WORKSHOP_ID" ] || [ -n "$MODIO_MOD_ID" ]; } && [ -z "$STEAM_OWNER_ID" ]; then
+        echo "FAIL: .env sets STEAM_WORKSHOP_ID/MODIO_MOD_ID but not STEAM_OWNER_ID (your SteamID64 — see .env.example)" >&2
         ERRORS=$((ERRORS + 1))
     fi
 fi
